@@ -40,7 +40,7 @@ interface Context {
               T2.stop_id, T2.arrival_time
         FROM Stop_time as T1
         INNER JOIN Stop_time as T2 ON T2.trip_id=T1.trip_id
-        WHERE T1.stop_id=${input.dep_stop_id} AND T2.stop_id=${input.arriv_stop_id} 
+        WHERE T1.stop_id='${input.dep_stop_id}' AND T2.stop_id='${input.arriv_stop_id}' 
         AND T1.stop_sequence < T2.stop_sequence;
       `;
       return results;
@@ -60,21 +60,26 @@ interface Context {
         SELECT T2.arrival_time, T1.departure_time, strftime('%H:%M:%S',(unixepoch(T2.arrival_time)-unixepoch(T1.departure_time)),'unixepoch') AS trip_duration
         FROM Stop_time as T1
         INNER JOIN Stop_time as T2 ON T2.trip_id=T1.trip_id
-        WHERE T1.stop_id=${input.dep_stop_id} AND T2.stop_id=${input.arriv_stop_id} 
+        WHERE T1.stop_id='${input.dep_stop_id}' AND T2.stop_id='${input.arriv_stop_id}' 
         AND T1.stop_sequence < T2.stop_sequence;
       `
       return results
       }),
     
 // The getMinPrice procedure gets departure station's 
-// and arrival station's IDs as an input from the user and calculates the minimum price for the trip. NOT READY YET!!!
+// and arrival station's IDs as an input from the user and 
+// calculates the minimum price for the trip. 
     getMinPrice: publicProcedure
     .input(z.object({ 
       dep_stop_id: z.string(), 
       arriv_stop_id: z.string() }))
-    .query((input) => {
-      const price = "Minimum price calculation not yet implemented"
-      return price; 
-      //query is under construction
+    .query(async ({ input, ctx }) => {
+      const results = await ctx.db.$queryRaw`
+        SELECT (unixepoch(T2.arrival_time)-unixepoch(T1.departure_time))/3600*120*0.16 AS min_price 
+        FROM Stop_time as T1 
+        INNER JOIN Stop_time as T2 ON T2.trip_id=T1.trip_id 
+        WHERE T1.stop_id='${input.dep_stop_id}' AND T2.stop_id='${input.arriv_stop_id}' AND T1.stop_sequence < T2.stop_sequence;
+      `
+      return results
     }),
   });
