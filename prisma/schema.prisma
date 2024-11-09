@@ -14,17 +14,17 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+//model Post {
+//    id        Int      @id @default(autoincrement())
+//    name      String
+//    createdAt DateTime @default(now())
+//    updatedAt DateTime @updatedAt
 
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String
+//    createdBy   User   @relation(fields: [createdById], references: [id])
+//    createdById String
 
-    @@index([name])
-}
+//    @@index([name])
+//}
 
 // Necessary for Next auth
 model Account {
@@ -40,6 +40,7 @@ model Account {
     scope             String?
     id_token          String? // @db.Text
     session_state     String?
+    
     user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     @@unique([provider, providerAccountId])
@@ -50,6 +51,7 @@ model Session {
     sessionToken String   @unique
     userId       String
     expires      DateTime
+    
     user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -59,9 +61,11 @@ model User {
     email         String?   @unique
     emailVerified DateTime?
     image         String?
+    
     accounts      Account[]
     sessions      Session[]
-    posts         Post[]
+//    posts         Post[]
+    reservations  Reservation[]  
 }
 
 model VerificationToken {
@@ -70,4 +74,130 @@ model VerificationToken {
     expires    DateTime
 
     @@unique([identifier, token])
+}
+
+model Reservation {
+    reservation_id  Int @id @default(autoincrement())
+    seat_id         Int @unique
+    user_id         String 
+    trip_id         String 
+    dep_stop_id     String 
+    arriv_stop_id   String 
+    price           Float 
+    departure_time  String
+    arrival_time    String
+
+    seat            Seat @relation(fields:[seat_id], references:[seat_id])
+    user            User @relation(fields:[user_id],references:[id])
+    trip            Trip @relation(fields:[trip_id],references:[trip_id])
+    departure_stop  Stop @relation(fields:[dep_stop_id], references: [stop_id])
+    
+}
+
+model Train {
+    train_id        Int   @id
+    train_number    String
+
+    route           Route?
+    composition     Train_composition[]  
+}
+
+model Car {
+    car_id          Int @id
+    
+    composition     Train_composition?
+    seat            Seat[]
+}
+
+model Seat { 
+    seat_id         Int  @id
+    seat_number     Int
+    reserved        Int
+    car_id          Int
+    travel_class    Int
+    
+    car             Car @relation(fields:[car_id], references:[car_id])
+    reservation     Reservation?
+}
+
+model Train_composition {
+    train_id        Int
+    car_id          Int @unique   
+    car_number      Int  
+
+    @@id([train_id, car_id])
+    train      Train @relation(fields:[train_id], references:[train_id])
+    car        Car @relation(fields:[car_id], references:[car_id])
+}
+
+model Trip {
+    trip_id         String  @id
+    route_id        String
+    service_id      String
+
+    stop_time       Stop_time[] 
+    route           Route @relation(fields:[route_id], references: [route_id])   
+    service         Calendar @relation(fields: [service_id], references: [service_id])
+    reservation     Reservation[]
+
+}
+
+model Route {
+    route_id        String @id
+    route_long_name String
+    train_id        Int @unique
+
+    route           Trip[]
+    train           Train @relation(fields:[train_id], references: [train_id])  
+}
+
+model Stop_time {
+    stop_id         String  
+    trip_id         String
+    arrival_time    String
+    departure_time  String
+    stop_sequence   Int
+
+    @@id([stop_id, trip_id, stop_sequence])
+    stop           Stop @relation(fields:[stop_id], references: [stop_id])
+    trip           Trip @relation(fields:[trip_id], references:[trip_id])
+}
+
+model Stop {
+    stop_id         String  @id
+    stop_name       String
+    
+    stop_time       Stop_time[]
+    departure_stop  Reservation[]
+}
+
+model Calendar {
+    service_id  String @id
+    monday      Boolean
+    tuesday     Boolean
+    wednesday   Boolean
+    thursday    Boolean
+    friday      Boolean
+    saturday    Boolean 
+    sunday      Boolean
+    
+    trips       Trip[]
+}
+
+
+// prisma/schema.prisma
+
+datasource db {
+  provider = "postgresql" // or your database provider
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Stop {
+  id        Int     @id @default(autoincrement())
+  stop_id   String
+  stop_name String
 }
