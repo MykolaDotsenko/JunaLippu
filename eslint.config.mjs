@@ -26,5 +26,7 @@ export default defineConfig([
     "build/**",
     "next-env.d.ts",
     "src/generated/prisma/**",
+    "playwright-report/**",
+    "test-results/**",
   ]),
 ]);
