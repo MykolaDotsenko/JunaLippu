@@ -30,13 +30,8 @@ const run = (name, args, nodeEnv) => {
 };
 
 try {
-  const migrated = run(
-    "pnpm",
-    ["exec", "prisma", "migrate", "deploy"],
-    "test",
-  );
-  const seeded =
-    migrated && run("node", ["tests/e2e-seed.mjs"], "test");
+  const migrated = run("pnpm", ["exec", "prisma", "migrate", "deploy"], "test");
+  const seeded = migrated && run("node", ["tests/e2e-seed.mjs"], "test");
 
   if (seeded) {
     run("pnpm", ["exec", "playwright", "test"], "production");
