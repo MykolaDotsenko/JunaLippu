@@ -17,20 +17,25 @@ const ReviewBooking: React.FC = () => {
   const depStopId = typeof router.query.depStopId === "string" ? router.query.depStopId : "";
   const arrivStopId = typeof router.query.arrivStopId === "string" ? router.query.arrivStopId : "";
   const seatId = Number(typeof router.query.seatId === "string" ? router.query.seatId : "0");
-  const travelClass = Number(
-    typeof router.query.travelClass === "string" ? router.query.travelClass : "2",
-  ) as 1 | 2;
+  const travelClass =
+    router.query.travelClass === "1"
+      ? 1
+      : router.query.travelClass === "2"
+        ? 2
+        : null;
   const date = typeof router.query.date === "string" ? router.query.date : "";
   const input = {
     seat_id: seatId,
     trip_id: tripId,
     dep_stop_id: depStopId,
     arriv_stop_id: arrivStopId,
-    travel_class: travelClass,
+    travel_class: travelClass ?? 2,
   };
 
   const review = api.booking.getReview.useQuery(input, {
-    enabled: Boolean(seatId && tripId && depStopId && arrivStopId),
+    enabled: Boolean(
+      seatId && tripId && depStopId && arrivStopId && travelClass,
+    ),
     retry: false,
   });
 
@@ -62,7 +67,7 @@ const ReviewBooking: React.FC = () => {
         <main id="main-content" className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
           <BookingProgress current={4} />
 
-          {!seatId || !tripId || !depStopId || !arrivStopId ? (
+          {!seatId || !tripId || !depStopId || !arrivStopId || !travelClass ? (
             <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
               <h1 className="text-xl font-bold">Booking details are missing.</h1>
               <p className="mt-2 text-sm">Start a new search to build a valid reservation.</p>
@@ -81,7 +86,7 @@ const ReviewBooking: React.FC = () => {
                 depStopId,
                 arrivStopId,
                 date: review.data?.service_date ?? date,
-                travelClass: travelClass.toString(),
+                travelClass: travelClass?.toString() ?? "",
               },
             }}
             className="text-sm font-semibold text-blue-700 hover:underline"
