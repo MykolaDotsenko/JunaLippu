@@ -5,6 +5,7 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 const searchInput = z.object({
   dep_stop_id: z.string().min(1),
   arriv_stop_id: z.string().min(1),
+  travel_date: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/),
 });
 
 const timeToMinutes = (value: string) => {
@@ -34,14 +35,16 @@ export const searchRouter = createTRPCRouter({
   getSchedule: publicProcedure
     .input(searchInput)
     .query(async ({ input, ctx }) => {
-      const departureStops = await ctx.db.stop_time.findMany({
+      const dateKey = input.travel_date.replaceAll("-", "");
+
+      const departureStops = (await ctx.db.stop_time.findMany({
         where: { stop_id: input.dep_stop_id },
         select: {
           trip_id: true,
           departure_time: true,
           stop_sequence: true,
         },
-      });
+      })).filter((stop) => stop.trip_id.endsWith(dateKey));
 
       const arrivalStops = await ctx.db.stop_time.findMany({
         where: {
