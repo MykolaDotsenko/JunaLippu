@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
+import Image from "next/image";
 import Link from "next/link";
 
 import { useGoogleAuthStatus } from "~/hooks/useGoogleAuthStatus";
@@ -74,10 +75,25 @@ const Header = () => {
 
         {aboutOpen && (
           <div className="border-t border-slate-200 bg-slate-50">
-            <div className="mx-auto max-w-6xl px-4 py-4 text-sm leading-6 text-slate-600 sm:px-6">
-              JunaLippu is a portfolio railway-booking demo built with Next.js,
-              tRPC, Prisma and NextAuth. It uses historical 2024 sample
-              timetable data and does not process real payments.
+            <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-4 sm:px-6">
+              <div className="flex h-14 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+                <Image
+                  src="/images/logo.png"
+                  alt=""
+                  width={650}
+                  height={520}
+                  className="max-h-12 w-auto object-contain"
+                />
+              </div>
+              <div className="text-sm leading-6 text-slate-600">
+                <p className="font-semibold text-slate-900">
+                  JunaLippu · portfolio railway-booking demo
+                </p>
+                <p>
+                  Built with Next.js, tRPC, Prisma and NextAuth using historical
+                  2024 timetable data. No real payments are processed.
+                </p>
+              </div>
             </div>
           </div>
         )}
