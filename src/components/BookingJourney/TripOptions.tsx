@@ -1,35 +1,69 @@
-import React from 'react';
-import Link from 'next/link';
+import React from "react";
+import Link from "next/link";
+import { useRouter } from "next/router";
+
+import { api } from "~/utils/api";
 
 const TripOptions: React.FC = () => {
-    const trips = [
-        { id: 1, time: '5:31 - 8:53', duration: '3h 22 min', price: '35 euro', date: '06 May 2024' },
-        { id: 2, time: '6:31 - 9:53', duration: '3h 22 min', price: '35 euro', date: '06 May 2024' },
-        { id: 3, time: '7:25 - 10:53', duration: '3h 28 min', price: '35 euro', date: '06 May 2024' },
-        { id: 4, time: '8:31 - 11:53', duration: '3h 22 min', price: '35 euro', date: '06 May 2024' },
-        { id: 5, time: '9:31 - 12:53', duration: '3h 22 min', price: '35 euro', date: '06 May 2024' },
-        { id: 6, time: '10:31 - 13:53', duration: '3h 22 min', price: '35 euro', date: '06 May 2024' },
-        { id: 7, time: '11:31 - 14:53', duration: '3h 22 min', price: '35 euro', date: '06 May 2024' },
-        { id: 8, time: '12:31 - 15:53', duration: '3h 22 min', price: '35 euro', date: '06 May 2024' },
-        { id: 9, time: '13:31 - 16:53', duration: '3h 22 min', price: '35 euro', date: '06 May 2024' },
-        { id: 10, time: '14:31 - 17:53', duration: '3h 22 min', price: '35 euro', date: '06 May 2024' },
-    ];
+  const router = useRouter();
+  const depStopId = typeof router.query.depStopId === "string" ? router.query.depStopId : "";
+  const arrivStopId = typeof router.query.arrivStopId === "string" ? router.query.arrivStopId : "";
+  const departureCity = typeof router.query.departureCity === "string" ? router.query.departureCity : "";
+  const arrivalCity = typeof router.query.arrivalCity === "string" ? router.query.arrivalCity : "";
+  const startDate = typeof router.query.startDate === "string" ? router.query.startDate : "";
 
-    return (
-        <div className="space-y-4">
-            {trips.map(trip => (
-                <div key={trip.id} className="flex justify-between items-center p-4 border border-gray-300 rounded-md bg-gray-200">
-                    <p className="text-lg font-medium text-black">
-                        <Link href={`/Journey?time=${trip.time}&duration=${trip.duration}&price=${trip.price}&date=${trip.date}`}>
-                            {trip.time}
-                        </Link>
-                    </p>
-                    <p className="text-lg text-black">{trip.duration}</p>
-                    <p className="text-lg text-black">{trip.price}</p>
-                </div>
-            ))}
-        </div>
-    );
-}
+  const schedule = api.search.getSchedule.useQuery(
+    { dep_stop_id: depStopId, arriv_stop_id: arrivStopId },
+    { enabled: Boolean(depStopId && arrivStopId) },
+  );
+
+  if (schedule.isLoading) {
+    return <p className="py-8 text-center text-lg">Searching available journeys…</p>;
+  }
+
+  if (schedule.error) {
+    return <p className="py-8 text-center text-lg text-red-700">Unable to load journeys.</p>;
+  }
+
+  if (!schedule.data?.length) {
+    return <p className="py-8 text-center text-lg">No journeys found for this route.</p>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {schedule.data.map((trip) => {
+        const price = trip.min_price.toFixed(2);
+
+        return (
+          <Link
+            key={trip.trip_id}
+            href={{
+              pathname: "/Journey",
+              query: {
+                tripId: trip.trip_id,
+                depStopId,
+                arrivStopId,
+                departureCity,
+                arrivalCity,
+                date: startDate,
+                departureTime: trip.departure_time,
+                arrivalTime: trip.arrival_time,
+                duration: trip.duration,
+                price,
+              },
+            }}
+            className="grid grid-cols-3 items-center rounded-md border border-gray-300 bg-gray-100 p-4 transition hover:bg-gray-200"
+          >
+            <span className="text-lg font-medium">
+              {trip.departure_time} – {trip.arrival_time}
+            </span>
+            <span className="text-center text-lg">{trip.duration}</span>
+            <span className="text-right text-lg font-semibold">from €{price}</span>
+          </Link>
+        );
+      })}
+    </div>
+  );
+};
 
 export default TripOptions;
