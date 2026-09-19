@@ -1,38 +1,54 @@
 import React from "react";
-import Header from "../components/Header";
-import Footer from "../components/Footer";
-import StepButtons from "~/components/BookingJourney/StepButtons";
-import TripDetails from "~/components/BookingJourney/TripDetails";
+import Head from "next/head";
+import Link from "next/link";
+import { useRouter } from "next/router";
+
+import BookingProgress from "~/components/BookingProgress";
+import Footer from "~/components/Footer";
+import Header from "~/components/Header";
 import TripOptions from "~/components/BookingJourney/TripOptions";
-import Navigation from "~/components/BookingJourney/Navigation";
 
 const BookingJourney: React.FC = () => {
+  const router = useRouter();
+  const departureCity =
+    typeof router.query.departureCity === "string" ? router.query.departureCity : "";
+  const arrivalCity =
+    typeof router.query.arrivalCity === "string" ? router.query.arrivalCity : "";
+  const startDate =
+    typeof router.query.startDate === "string" ? router.query.startDate : "";
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-grow p-8">
-        {/* Steps of booking journey */}
-        <section className="mb-8">
-          <StepButtons />
-        </section>
+    <>
+      <Head>
+        <title>Choose a train · JunaLippu</title>
+      </Head>
+      <div className="min-h-screen bg-slate-50 text-slate-950">
+        <Header />
+        <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
+          <BookingProgress current={2} />
 
-        {/* Details of journey */}
-        <section className="mb-8">
-          <TripDetails />
-        </section>
+          <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <Link href="/" className="text-sm font-semibold text-blue-700 hover:underline">
+                ← Change search
+              </Link>
+              <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+                {departureCity || "Departure"} → {arrivalCity || "Arrival"}
+              </h1>
+              <p className="mt-2 text-slate-500">
+                {startDate || "Service date"} · 1 passenger · one way
+              </p>
+            </div>
+            <span className="w-fit rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
+              Historical demo timetable
+            </span>
+          </div>
 
-        {/* List of journey options */}
-        <section className="mb-8">
           <TripOptions />
-        </section>
-
-        {/* Navigation days */}
-        <section>
-          <Navigation />
-        </section>
-      </main>
-      <Footer />
-    </div>
+        </main>
+        <Footer />
+      </div>
+    </>
   );
 };
 
