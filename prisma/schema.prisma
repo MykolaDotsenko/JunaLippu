@@ -64,7 +64,7 @@ model Reservation {
   trip_id        String
   dep_stop_id    String
   arriv_stop_id  String
-  price          Float
+  price_cents    Int
   departure_time String
   arrival_time   String
 
@@ -73,9 +73,23 @@ model Reservation {
   trip           Trip @relation(fields: [trip_id], references: [trip_id])
   departure_stop Stop @relation("ReservationDepartureStop", fields: [dep_stop_id], references: [stop_id])
   arrival_stop   Stop @relation("ReservationArrivalStop", fields: [arriv_stop_id], references: [stop_id])
+  segments       ReservationSegment[]
 
-  @@unique([trip_id, seat_id])
   @@index([user_id])
+  @@index([trip_id, seat_id])
+}
+
+model ReservationSegment {
+  reservation_id Int
+  trip_id        String
+  seat_id        Int
+  stop_sequence  Int
+
+  reservation Reservation @relation(fields: [reservation_id], references: [reservation_id], onDelete: Cascade)
+
+  @@id([reservation_id, stop_sequence])
+  @@unique([trip_id, seat_id, stop_sequence])
+  @@index([trip_id, seat_id])
 }
 
 model Train {
@@ -96,7 +110,6 @@ model Car {
 model Seat {
   seat_id      Int @id
   seat_number  Int
-  reserved     Int
   car_id       Int
   travel_class Int
 
@@ -116,14 +129,17 @@ model Train_composition {
 }
 
 model Trip {
-  trip_id    String @id
-  route_id   String
-  service_id String
+  trip_id      String @id
+  route_id     String
+  service_id   String
+  service_date String
 
   stop_times   Stop_time[]
   route        Route @relation(fields: [route_id], references: [route_id])
   service      Calendar @relation(fields: [service_id], references: [service_id])
   reservations Reservation[]
+
+  @@index([service_date])
 }
 
 model Route {
@@ -146,6 +162,7 @@ model Stop_time {
   trip Trip @relation(fields: [trip_id], references: [trip_id])
 
   @@id([stop_id, trip_id, stop_sequence])
+  @@index([trip_id, stop_sequence])
 }
 
 model Stop {
