@@ -1,35 +1,37 @@
 import React from "react";
+import Link from "next/link";
 
-const PopularRoutes: React.FC = () => {
-  return (
-    <section className="flex flex-col md:flex-row mb-4 space-y-4 md:space-y-0 md:space-x-4">
-      <div 
-        className="relative w-full md:w-[677px] h-[348px] bg-cover bg-center"
-        style={{ backgroundImage: "url('/images/santa-claus-express-masthead.jpg')" }}
-      >
-        <h2 className="absolute w-[220px] h-[39px] left-[185px] top-[39px] font-inter italic font-normal text-[32px] leading-[39px] text-black">
-          Popular routes
-        </h2>
-        <p className="absolute w-[301px] h-[38px] left-[146px] top-[126px] font-inter italic font-semibold text-[32px] leading-[39px] text-black">
-          Helsinki - Tampere
-        </p>
-        <p className="absolute w-[305px] h-[39px] left-[146px] top-[191px] font-inter italic font-semibold text-[32px] leading-[39px] text-black">
-          Helsinki - Oulu
-        </p>
-      </div>
-      <div 
-        className="relative w-full md:w-[617px] h-[345px] bg-cover bg-center md:ml-auto mt-8 md:mt-0"
-        style={{ 
-          backgroundImage: "url('/images/Group_637-2-2.jpg')",
-          backgroundPosition: "right center" // Adjusts background image position to right center
-        }}
-      >
-        <p className="absolute w-[202px] h-[218px] left-[40px] top-[40px] font-inter italic font-light text-[32px] leading-[39px] text-black">
-          Experience FINLAND by train
-        </p>
-      </div>
-    </section>
-  );
-};
+const routes = [
+  { from: "HKI", to: "TPE", label: "Helsinki → Tampere" },
+  { from: "HKI", to: "OL", label: "Helsinki → Oulu" },
+];
+
+const PopularRoutes: React.FC = () => (
+  <section className="py-12 sm:py-16" aria-labelledby="popular-routes-title">
+    <div className="mb-6">
+      <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-600">Quick start</p>
+      <h2 id="popular-routes-title" className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+        Popular demo routes
+      </h2>
+      <p className="mt-2 text-slate-600">Prefill a route, then choose an available 2024 service date.</p>
+    </div>
+
+    <div className="grid gap-4 sm:grid-cols-2">
+      {routes.map((route) => (
+        <Link
+          key={route.label}
+          href={{ pathname: "/", query: { from: route.from, to: route.to } }}
+          className="group flex min-h-24 items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+        >
+          <div>
+            <div className="font-semibold text-slate-950">{route.label}</div>
+            <div className="mt-1 text-sm text-slate-500">1 passenger · one way</div>
+          </div>
+          <span className="text-xl text-blue-600 transition group-hover:translate-x-1">→</span>
+        </Link>
+      ))}
+    </div>
+  </section>
+);
 
 export default PopularRoutes;
