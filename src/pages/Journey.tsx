@@ -14,19 +14,26 @@ const Journey: React.FC = () => {
   const tripId = typeof router.query.tripId === "string" ? router.query.tripId : "";
   const depStopId = typeof router.query.depStopId === "string" ? router.query.depStopId : "";
   const arrivStopId = typeof router.query.arrivStopId === "string" ? router.query.arrivStopId : "";
-  const departureCity = typeof router.query.departureCity === "string" ? router.query.departureCity : "";
-  const arrivalCity = typeof router.query.arrivalCity === "string" ? router.query.arrivalCity : "";
-  const departureTime = typeof router.query.departureTime === "string" ? router.query.departureTime : "";
-  const arrivalTime = typeof router.query.arrivalTime === "string" ? router.query.arrivalTime : "";
-  const duration = typeof router.query.duration === "string" ? router.query.duration : "";
   const date = typeof router.query.date === "string" ? router.query.date : "";
+  const initialTravelClass =
+    router.query.travelClass === "1" ? 1 : 2;
 
-  const [travelClass, setTravelClass] = useState<1 | 2>(2);
+  const [travelClass, setTravelClass] = useState<1 | 2>(initialTravelClass);
   const [selectedSeatId, setSelectedSeatId] = useState<number | null>(null);
 
+  const journey = api.booking.getJourneyDetails.useQuery(
+    { trip_id: tripId, dep_stop_id: depStopId, arriv_stop_id: arrivStopId },
+    { enabled: Boolean(tripId && depStopId && arrivStopId), retry: false },
+  );
+
   const seats = api.booking.getSeat.useQuery(
-    { travel_class: travelClass, trip_id: tripId },
-    { enabled: Boolean(tripId), retry: 1 },
+    {
+      travel_class: travelClass,
+      trip_id: tripId,
+      dep_stop_id: depStopId,
+      arriv_stop_id: arrivStopId,
+    },
+    { enabled: Boolean(tripId && depStopId && arrivStopId), retry: 1 },
   );
 
   const selectedSeat = useMemo(
@@ -70,11 +77,7 @@ const Journey: React.FC = () => {
         seatId: selectedSeat.seat_id.toString(),
         travelClass: travelClass.toString(),
         date,
-        departureCity,
-        arrivalCity,
-        departureTime,
-        arrivalTime,
-        duration,
+        travelClass: travelClass.toString(),
       },
     });
   };
@@ -96,9 +99,9 @@ const Journey: React.FC = () => {
                 query: {
                   depStopId,
                   arrivStopId,
-                  departureCity,
-                  arrivalCity,
-                  startDate: date,
+                  departureCity: journey.data?.departure_stop_name ?? "",
+                  arrivalCity: journey.data?.arrival_stop_name ?? "",
+                  startDate: journey.data?.service_date ?? date,
                 },
               }}
               className="text-sm font-semibold text-blue-700 hover:underline"
@@ -109,8 +112,11 @@ const Journey: React.FC = () => {
               Choose class and seat
             </h1>
             <p className="mt-2 text-slate-500">
-              {departureCity} → {arrivalCity} · {departureTime}–{arrivalTime}
-              {duration ? " · " + duration : ""}
+              {journey.data
+                ? journey.data.departure_stop_name + " → " + journey.data.arrival_stop_name +
+                  " · " + journey.data.departure_time + "–" + journey.data.arrival_time +
+                  " · " + journey.data.duration
+                : "Loading journey details…"}
             </p>
           </div>
 
