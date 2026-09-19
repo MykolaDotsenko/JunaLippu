@@ -1,10 +1,10 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
 }
 
 // NextAuth models
@@ -162,6 +162,7 @@ model Stop_time {
   trip Trip @relation(fields: [trip_id], references: [trip_id])
 
   @@id([stop_id, trip_id, stop_sequence])
+  @@unique([trip_id, stop_sequence])
   @@index([trip_id, stop_sequence])
 }
 
