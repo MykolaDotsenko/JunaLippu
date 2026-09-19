@@ -48,6 +48,9 @@ jobs:
       - name: Database invariant tests
         run: pnpm test:db
 
+      - name: Booking integration tests
+        run: pnpm test:integration
+
       - name: Lint
         run: pnpm lint
 
