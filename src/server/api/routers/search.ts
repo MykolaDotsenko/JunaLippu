@@ -1,85 +1,83 @@
 import { z } from "zod";
-import { PrismaClient } from "@prisma/client";
-import {
-  createTRPCRouter,
-  protectedProcedure,
-  publicProcedure,
-} from "~/server/api/trpc";
 
-interface Context {
-  db: PrismaClient;
-}
+import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
-  export const searchRouter = createTRPCRouter({ 
-//The procedure "getStationName" provides an array of stations names (stop_name) 
-// to show to the user in a search form. It also provides respective stops IDs. 
-// Selected stops IDs should be forwarded to the backend as dep_stop_id 
-// and arriv_stop_id to perform the next procedure.
+const searchInput = z.object({
+  dep_stop_id: z.string().min(1),
+  arriv_stop_id: z.string().min(1),
+});
 
-  getStationName: publicProcedure.query(async ({ ctx }) => {
-    return ctx.db.stop.findMany({
+const timeToMinutes = (value: string) => {
+  const [hours = "0", minutes = "0"] = value.split(":");
+  return Number(hours) * 60 + Number(minutes);
+};
+
+const minutesToDuration = (minutes: number) => {
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return `${hours}h ${remainder.toString().padStart(2, "0")}m`;
+};
+
+export const searchRouter = createTRPCRouter({
+  getStationName: publicProcedure.query(({ ctx }) =>
+    ctx.db.stop.findMany({
       select: {
         stop_id: true,
         stop_name: true,
       },
-    });
-  }),
+      orderBy: {
+        stop_name: "asc",
+      },
+    }),
+  ),
 
-  // The getSchedule procedure gets as an input a departure station's ID
-  // and arrival station's ID and query the database for available times.
   getSchedule: publicProcedure
-    .input(
-      z.object({
-        dep_stop_id: z.string(),
-        arriv_stop_id: z.string(),
-      }),
-    )
+    .input(searchInput)
     .query(async ({ input, ctx }) => {
-      const results = await ctx.db.$queryRaw`
-        SELECT T1.trip_id, T1.stop_id, T1.departure_time, 
-              T2.stop_id, T2.arrival_time
-        FROM Stop_time as T1
-        INNER JOIN Stop_time as T2 ON T2.trip_id=T1.trip_id
-        WHERE T1.stop_id='${input.dep_stop_id}' AND T2.stop_id='${input.arriv_stop_id}' 
-        AND T1.stop_sequence < T2.stop_sequence;
-      `;
-      return results;
-    }),
+      const departureStops = await ctx.db.stop_time.findMany({
+        where: { stop_id: input.dep_stop_id },
+        select: {
+          trip_id: true,
+          departure_time: true,
+          stop_sequence: true,
+        },
+      });
 
-  // The getTripDuration procedure gets departure station's
-  // and arrival station's IDs as an input and calculates the trip duration (in format HH:MM:SS).
-  getTripDuration: publicProcedure
-    .input(
-      z.object({
-        dep_stop_id: z.string(),
-        arriv_stop_id: z.string(),
-      }),
-    )
-    .query(async ({ input, ctx }) => {
-      const results = await ctx.db.$queryRaw`
-        SELECT T2.arrival_time, T1.departure_time, strftime('%H:%M:%S',(unixepoch(T2.arrival_time)-unixepoch(T1.departure_time)),'unixepoch') AS trip_duration
-        FROM Stop_time as T1
-        INNER JOIN Stop_time as T2 ON T2.trip_id=T1.trip_id
-        WHERE T1.stop_id='${input.dep_stop_id}' AND T2.stop_id='${input.arriv_stop_id}' 
-        AND T1.stop_sequence < T2.stop_sequence;
-      `
-      return results
-      }),
-    
-// The getMinPrice procedure gets departure station's 
-// and arrival station's IDs as an input from the user and 
-// calculates the minimum price for the trip. 
-    getMinPrice: publicProcedure
-    .input(z.object({ 
-      dep_stop_id: z.string(), 
-      arriv_stop_id: z.string() }))
-    .query(async ({ input, ctx }) => {
-      const results = await ctx.db.$queryRaw`
-        SELECT (unixepoch(T2.arrival_time)-unixepoch(T1.departure_time))/3600*120*0.16 AS min_price 
-        FROM Stop_time as T1 
-        INNER JOIN Stop_time as T2 ON T2.trip_id=T1.trip_id 
-        WHERE T1.stop_id='${input.dep_stop_id}' AND T2.stop_id='${input.arriv_stop_id}' AND T1.stop_sequence < T2.stop_sequence;
-      `
-      return results
+      const arrivalStops = await ctx.db.stop_time.findMany({
+        where: {
+          stop_id: input.arriv_stop_id,
+          trip_id: { in: departureStops.map((stop) => stop.trip_id) },
+        },
+        select: {
+          trip_id: true,
+          arrival_time: true,
+          stop_sequence: true,
+        },
+      });
+
+      const arrivalsByTrip = new Map(
+        arrivalStops.map((stop) => [stop.trip_id, stop]),
+      );
+
+      return departureStops
+        .flatMap((departure) => {
+          const arrival = arrivalsByTrip.get(departure.trip_id);
+          if (!arrival || departure.stop_sequence >= arrival.stop_sequence) return [];
+
+          const durationMinutes =
+            timeToMinutes(arrival.arrival_time) -
+            timeToMinutes(departure.departure_time);
+          if (durationMinutes < 0) return [];
+
+          return [{
+            trip_id: departure.trip_id,
+            departure_time: departure.departure_time,
+            arrival_time: arrival.arrival_time,
+            duration_minutes: durationMinutes,
+            duration: minutesToDuration(durationMinutes),
+            min_price: Number((durationMinutes / 60 * 120 * 0.16).toFixed(2)),
+          }];
+        })
+        .sort((a, b) => a.departure_time.localeCompare(b.departure_time));
     }),
-  });
+});
