@@ -32,8 +32,6 @@ const TripOptions = () => {
     {
       enabled: Boolean(depStopId && arrivStopId && startDate),
       retry: 1,
-      // Timetable for a given date; prices are derived from it, not from
-      // availability, so this does not need refetching on focus.
       staleTime: Infinity,
     },
   );

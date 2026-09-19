@@ -27,14 +27,8 @@ const PageLayout = ({
   children,
 }: PageLayoutProps) => {
   const router = useRouter();
-  // Read through process.env rather than the validated `env` helper: that
-  // helper pulls zod into every client bundle, and Next.js inlines
-  // NEXT_PUBLIC_* at build time anyway. The value is still declared and
-  // validated in src/env.js for the server build.
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
-  // Query parameters carry booking state, not distinct content, so every
-  // variant of a route points at the same canonical page.
   const canonical = siteUrl
     ? new URL(router.asPath.split("?")[0] ?? "/", siteUrl).toString()
     : null;

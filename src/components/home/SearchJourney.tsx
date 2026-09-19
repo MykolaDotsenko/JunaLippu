@@ -12,7 +12,6 @@ const SearchJourney = () => {
   const router = useRouter();
   const stationsQuery = api.search.getStationName.useQuery(undefined, {
     retry: 1,
-    // The station list is fixed for the lifetime of the app.
     staleTime: Infinity,
   });
   const stations = useMemo(
@@ -20,9 +19,6 @@ const SearchJourney = () => {
     [stationsQuery.data],
   );
 
-  // The search lives in the URL rather than in component state, so a search
-  // can be shared, bookmarked and restored by the back button — and no effect
-  // is needed to keep the two in sync.
   const from = asString(router.query.from);
   const to = asString(router.query.to);
   const date = asString(router.query.date);
@@ -53,7 +49,6 @@ const SearchJourney = () => {
     {
       enabled: Boolean(from && to) && !invalidRoute,
       retry: 1,
-      // Service dates come from a fixed historical dataset.
       staleTime: Infinity,
     },
   );
@@ -63,7 +58,6 @@ const SearchJourney = () => {
     [availableDatesQuery.data],
   );
 
-  // A shared link can name a date the route no longer runs on.
   const selectedDate = availableDates.includes(date) ? date : "";
 
   const demoDateRange = useMemo(() => {

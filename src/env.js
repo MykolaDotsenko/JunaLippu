@@ -22,7 +22,6 @@ export const env = createEnv({
     GOOGLE_CLIENT_SECRET: requiredInProduction("GOOGLE_CLIENT_SECRET"),
   },
   client: {
-    // Optional: when set, pages emit an absolute canonical and og:url.
     NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
   },
   runtimeEnv: {

@@ -26,8 +26,6 @@ const SeatsPage = () => {
 
   const hasSegment = Boolean(tripId && depStopId && arrivStopId);
 
-  // The URL is the single source of truth for the choices on this page, so a
-  // seat selection survives a refresh and can be shared.
   const replaceQuery = (next: Record<string, string | undefined>) => {
     const merged: Record<string, string> = {};
     for (const [key, value] of Object.entries({ ...router.query, ...next })) {
@@ -50,14 +48,11 @@ const SeatsPage = () => {
     arriv_stop_id: arrivStopId,
   };
 
-  // The fare depends on the journey and the class, never on which seat is
-  // picked, so it is fetched once per class instead of on every seat click.
   const quote = api.booking.getQuote.useQuery(
     { ...segment, travel_class: travelClass },
     { enabled: hasSegment, retry: false, staleTime: Infinity },
   );
 
-  // Availability is the opposite: it must never be served from a stale cache.
   const seats = api.booking.getSeat.useQuery(
     { ...segment, travel_class: travelClass },
     { enabled: hasSegment, retry: 1, staleTime: 0 },

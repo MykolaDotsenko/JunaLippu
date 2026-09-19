@@ -133,8 +133,6 @@ void test("getQuote prices a journey without naming a seat", async () => {
   });
   assert.ok(first.price > second.price);
 
-  // The quote must not change once a seat in that class is taken, because the
-  // fare does not depend on which seat is picked.
   await caller.booking.createReservation(firstLeg);
   const afterBooking = await caller.booking.getQuote({
     ...segment,

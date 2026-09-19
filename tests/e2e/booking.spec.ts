@@ -153,13 +153,11 @@ test("the seat page keeps its choices in the URL", async ({ page }) => {
   await page.getByRole("radio", { name: "Car 1, seat 7" }).click();
   await expect(page).toHaveURL(/seatId=901/);
 
-  // A reload must restore the same selection from the URL alone.
   await page.reload();
   await expect(
     page.getByRole("radio", { name: "Car 1, seat 7" }),
   ).toHaveAttribute("aria-checked", "true");
 
-  // Switching class clears the seat, because it belongs to the old class.
   await firstClass.click();
   await expect(page).toHaveURL(/travelClass=1/);
   await expect(page).not.toHaveURL(/seatId=/);
@@ -174,8 +172,6 @@ test("seats are reachable with arrow keys, not only Tab", async ({ page }) => {
   const seat = page.getByRole("radio", { name: "Car 1, seat 7" });
   await expect(seat).toBeVisible();
 
-  // Arrow keys move to the next seat and select it, per the APG radio group
-  // pattern; Tab alone would have to walk every seat in the train.
   await seat.focus();
   await page.keyboard.press("ArrowRight");
   await expect(page).toHaveURL(/seatId=902/);
@@ -198,7 +194,6 @@ test("the search form keeps the query in the URL", async ({ page }) => {
   await page.getByLabel("Service date").selectOption("2024-05-06");
   await expect(page).toHaveURL(/date=2024-05-06/);
 
-  // The whole search survives a reload, which local state would not.
   await page.reload();
   await expect(page.getByLabel("From")).toHaveValue("E2EA");
   await expect(page.getByLabel("To")).toHaveValue("E2EC");

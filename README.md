@@ -221,6 +221,10 @@ GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET
 ```
 
+`NEXT_PUBLIC_SITE_URL` is optional. When it is set to the absolute site URL,
+pages emit a canonical link and Open Graph `og:url`; when it is absent both are
+omitted.
+
 ## Payment scope
 
 JunaLippu does **not** collect card details or process real money.
