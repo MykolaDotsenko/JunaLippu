@@ -10,7 +10,9 @@ const requiredInProduction = (name) =>
 export const env = createEnv({
   server: {
     DATABASE_URL: z.string().min(1),
-    NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+    NODE_ENV: z
+      .enum(["development", "test", "production"])
+      .default("development"),
     NEXTAUTH_SECRET: requiredInProduction("NEXTAUTH_SECRET"),
     NEXTAUTH_URL: z.preprocess(
       (str) => process.env.VERCEL_URL ?? str,

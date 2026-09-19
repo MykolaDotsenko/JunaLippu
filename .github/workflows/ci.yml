@@ -39,8 +39,24 @@ jobs:
       - name: Generate Prisma client
         run: pnpm exec prisma generate
 
-      - name: Create test database
-        run: pnpm exec prisma db push --force-reset
+      - name: Apply migrations
+        run: pnpm db:migrate
+
+      - name: Check migrations match the schema
+        run: |
+          pnpm exec prisma migrate diff \
+            --from-schema-datasource prisma/schema.prisma \
+            --to-schema-datamodel prisma/schema.prisma \
+            --exit-code && echo "Schema and migrations are in sync."
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
 
       - name: Unit tests
         run: pnpm test
@@ -48,11 +64,8 @@ jobs:
       - name: Database invariant tests
         run: pnpm test:db
 
-      - name: Booking integration tests
+      - name: Booking and search integration tests
         run: pnpm test:integration
-
-      - name: Lint
-        run: pnpm lint
 
       - name: Build
         run: pnpm build
