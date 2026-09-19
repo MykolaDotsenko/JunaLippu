@@ -24,12 +24,14 @@ const ReviewBooking: React.FC = () => {
         ? 2
         : null;
   const date = typeof router.query.date === "string" ? router.query.date : "";
+  const effectiveTravelClass: 1 | 2 = travelClass ?? 2;
+
   const input = {
     seat_id: seatId,
     trip_id: tripId,
     dep_stop_id: depStopId,
     arriv_stop_id: arrivStopId,
-    travel_class: travelClass ?? 2,
+    travel_class: effectiveTravelClass,
   };
 
   const review = api.booking.getReview.useQuery(input, {
