@@ -145,6 +145,14 @@ pnpm test:db
 pnpm test:integration
 ```
 
+Mobile browser smoke/E2E:
+
+```bash
+node tests/e2e-seed.mjs
+pnpm exec playwright install chromium
+pnpm test:e2e
+```
+
 The database invariant suite verifies that overlapping seat reservations are rejected while the same seat can be reused on a later non-overlapping segment.
 
 ## Authentication
@@ -181,6 +189,7 @@ database invariant tests
 booking integration tests
 eslint
 next build
+mobile Chromium E2E
 ```
 
 ## Historical context
