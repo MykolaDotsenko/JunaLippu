@@ -188,8 +188,6 @@ export const searchRouter = createTRPCRouter({
             },
           ];
         })
-        .sort((a, b) =>
-          compareGtfsTimes(a.departure_time, b.departure_time),
-        );
+        .sort((a, b) => compareGtfsTimes(a.departure_time, b.departure_time));
     }),
 });
