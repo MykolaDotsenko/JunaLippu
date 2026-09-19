@@ -3,7 +3,8 @@ import { PrismaClient } from "@prisma/client";
 import { readCsvRows } from "./lib/csv";
 
 const db = new PrismaClient();
-const prismaFile = (name: string) => new URL(`../prisma/${name}`, import.meta.url);
+const prismaFile = (name: string) =>
+  new URL(`../prisma/${name}`, import.meta.url);
 
 const asInteger = (value: string | undefined, field: string) => {
   const parsed = Number(value);
@@ -39,13 +40,13 @@ const seats = readCsvRows(prismaFile("3_Seat.csv")).map(
   }),
 );
 
-const rawCompositions = readCsvRows(
-  prismaFile("4_Train_composition.csv"),
-).map(([trainId, carId, carNumber]) => ({
-  train_id: asInteger(trainId, "Train_composition.train_id"),
-  car_id: asInteger(carId, "Train_composition.car_id"),
-  car_number: asInteger(carNumber, "Train_composition.car_number"),
-}));
+const rawCompositions = readCsvRows(prismaFile("4_Train_composition.csv")).map(
+  ([trainId, carId, carNumber]) => ({
+    train_id: asInteger(trainId, "Train_composition.train_id"),
+    car_id: asInteger(carId, "Train_composition.car_id"),
+    car_number: asInteger(carNumber, "Train_composition.car_number"),
+  }),
+);
 
 const trips = readCsvRows(prismaFile("5_Trip.csv")).map(
   ([tripId, routeId, serviceId, serviceDate]) => ({
@@ -115,8 +116,7 @@ const invalidRouteReferences = routes.filter(
   (route) => !trainIds.has(route.train_id),
 );
 const invalidTripReferences = trips.filter(
-  (trip) =>
-    !routeIds.has(trip.route_id) || !calendarIds.has(trip.service_id),
+  (trip) => !routeIds.has(trip.route_id) || !calendarIds.has(trip.service_id),
 );
 
 if (
@@ -156,7 +156,8 @@ const orphanStopTimes = rawStopTimes.filter(
 if (
   orphanStopTimes.length !== 6 ||
   orphanStopTimes.some(
-    (stopTime) => stopTime.stop_id !== "VKA_0" || !tripIds.has(stopTime.trip_id),
+    (stopTime) =>
+      stopTime.stop_id !== "VKA_0" || !tripIds.has(stopTime.trip_id),
   )
 ) {
   throw new Error(
@@ -203,7 +204,10 @@ const insertInChunks = async <T>(
 
 try {
   const before = await currentCounts();
-  const domainRows = Object.values(before).reduce((sum, count) => sum + count, 0);
+  const domainRows = Object.values(before).reduce(
+    (sum, count) => sum + count,
+    0,
+  );
 
   if (domainRows > 0) {
     if (JSON.stringify(before) === JSON.stringify(expectedCounts)) {
