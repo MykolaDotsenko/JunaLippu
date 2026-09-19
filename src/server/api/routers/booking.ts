@@ -7,6 +7,7 @@ import {
   timeToMinutes,
 } from "~/server/api/lib/journey";
 import {
+  createTRPCContext,
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
@@ -20,8 +21,10 @@ const bookingInput = z.object({
   travel_class: z.number().int().min(1).max(2),
 });
 
+type TRPCContext = Awaited<ReturnType<typeof createTRPCContext>>;
+
 const getBookingContext = async (
-  ctx: Parameters<Parameters<typeof publicProcedure.query>[0]>[0]["ctx"],
+  ctx: TRPCContext,
   input: z.infer<typeof bookingInput>,
 ) => {
   const trip = await ctx.db.trip.findUnique({
