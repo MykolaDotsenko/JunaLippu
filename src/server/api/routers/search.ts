@@ -13,6 +13,18 @@ const searchInput = z.object({
   travel_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
+const routeInput = z.object({
+  dep_stop_id: z.string().min(1),
+  arriv_stop_id: z.string().min(1),
+});
+
+const getDateFromTripId = (tripId: string) => {
+  const match = tripId.match(/(\d{8})$/);
+  if (!match?.[1]) return null;
+  const value = match[1];
+  return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
+};
+
 export const searchRouter = createTRPCRouter({
   getStationName: publicProcedure.query(({ ctx }) =>
     ctx.db.stop.findMany({
@@ -25,6 +37,51 @@ export const searchRouter = createTRPCRouter({
       },
     }),
   ),
+
+  getAvailableDates: publicProcedure
+    .input(routeInput)
+    .query(async ({ input, ctx }) => {
+      const departureStops = await ctx.db.stop_time.findMany({
+        where: { stop_id: input.dep_stop_id },
+        select: {
+          trip_id: true,
+          stop_sequence: true,
+        },
+      });
+
+      if (departureStops.length === 0) return [];
+
+      const arrivals = await ctx.db.stop_time.findMany({
+        where: {
+          stop_id: input.arriv_stop_id,
+          trip_id: { in: departureStops.map((stop) => stop.trip_id) },
+        },
+        select: {
+          trip_id: true,
+          stop_sequence: true,
+        },
+      });
+
+      const arrivalByTrip = new Map(
+        arrivals.map((arrival) => [arrival.trip_id, arrival.stop_sequence]),
+      );
+
+      return Array.from(
+        new Set(
+          departureStops.flatMap((departure) => {
+            const arrivalSequence = arrivalByTrip.get(departure.trip_id);
+            if (
+              arrivalSequence === undefined ||
+              departure.stop_sequence >= arrivalSequence
+            ) {
+              return [];
+            }
+            const date = getDateFromTripId(departure.trip_id);
+            return date ? [date] : [];
+          }),
+        ),
+      ).sort();
+    }),
 
   getSchedule: publicProcedure
     .input(searchInput)
