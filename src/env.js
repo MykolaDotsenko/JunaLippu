@@ -1,6 +1,7 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
+/** @param {string} name */
 const requiredInProduction = (name) =>
   process.env.NODE_ENV === "production"
     ? z.string().min(1, `${name} is required in production`)
