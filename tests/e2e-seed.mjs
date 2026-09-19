@@ -1,5 +1,18 @@
 import { PrismaClient } from "@prisma/client";
 
+const assertTestDatabase = () => {
+  if (process.env.NODE_ENV !== "test") {
+    throw new Error(
+      "Refusing to wipe the database: NODE_ENV is not 'test'. These helpers " +
+        "delete every row in the database named by DATABASE_URL, which in a " +
+        "normal setup is your development data. Run the pnpm test scripts, " +
+        "which set NODE_ENV for you.",
+    );
+  }
+};
+
+assertTestDatabase();
+
 const db = new PrismaClient();
 
 await db.reservationSegment.deleteMany();
@@ -34,6 +47,9 @@ await db.train.create({ data: { train_id: 901, train_number: "IC901" } });
 await db.car.create({ data: { car_id: 901 } });
 await db.seat.create({
   data: { seat_id: 901, seat_number: 7, car_id: 901, travel_class: 2 },
+});
+await db.seat.create({
+  data: { seat_id: 902, seat_number: 8, car_id: 901, travel_class: 2 },
 });
 await db.train_composition.create({
   data: { train_id: 901, car_id: 901, car_number: 1 },

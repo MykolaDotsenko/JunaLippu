@@ -3,19 +3,49 @@ import { z } from "zod";
 import {
   calculateJourneyPriceCents,
   centsToEuros,
+  journeyDurationMinutes,
   minutesToDuration,
-  timeToMinutes,
+  pickJourneyStops,
 } from "~/server/api/lib/journey";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
-const routeInput = z.object({
+const routeShape = {
   dep_stop_id: z.string().min(1),
   arriv_stop_id: z.string().min(1),
-});
+};
 
-const searchInput = routeInput.extend({
-  travel_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-});
+const hasDistinctStops = (value: {
+  dep_stop_id: string;
+  arriv_stop_id: string;
+}) => value.dep_stop_id !== value.arriv_stop_id;
+
+const distinctStopsError = {
+  message: "Departure and arrival stations must be different.",
+};
+
+const routeInput = z
+  .object(routeShape)
+  .refine(hasDistinctStops, distinctStopsError);
+
+const searchInput = z
+  .object({
+    ...routeShape,
+    travel_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  })
+  .refine(hasDistinctStops, distinctStopsError);
+
+const groupByTrip = <T extends { trip_id: string }>(calls: readonly T[]) => {
+  const byTrip = new Map<string, T[]>();
+  for (const call of calls) {
+    const existing = byTrip.get(call.trip_id);
+    if (existing) {
+      existing.push(call);
+    } else {
+      byTrip.set(call.trip_id, [call]);
+    }
+  }
+  return byTrip;
+};
 
 export const searchRouter = createTRPCRouter({
   getStationName: publicProcedure.query(({ ctx }) =>
@@ -33,7 +63,7 @@ export const searchRouter = createTRPCRouter({
   getAvailableDates: publicProcedure
     .input(routeInput)
     .query(async ({ input, ctx }) => {
-      const departureStops = await ctx.db.stop_time.findMany({
+      const departureCalls = await ctx.db.stop_time.findMany({
         where: { stop_id: input.dep_stop_id },
         select: {
           trip_id: true,
@@ -46,12 +76,12 @@ export const searchRouter = createTRPCRouter({
         },
       });
 
-      if (departureStops.length === 0) return [];
+      if (departureCalls.length === 0) return [];
 
-      const arrivals = await ctx.db.stop_time.findMany({
+      const arrivalCalls = await ctx.db.stop_time.findMany({
         where: {
           stop_id: input.arriv_stop_id,
-          trip_id: { in: departureStops.map((stop) => stop.trip_id) },
+          trip_id: { in: departureCalls.map((call) => call.trip_id) },
         },
         select: {
           trip_id: true,
@@ -59,24 +89,20 @@ export const searchRouter = createTRPCRouter({
         },
       });
 
-      const arrivalByTrip = new Map(
-        arrivals.map((arrival) => [arrival.trip_id, arrival.stop_sequence]),
-      );
+      const arrivalsByTrip = groupByTrip(arrivalCalls);
+      const serviceDates = new Set<string>();
 
-      return Array.from(
-        new Set(
-          departureStops.flatMap((departure) => {
-            const arrivalSequence = arrivalByTrip.get(departure.trip_id);
-            if (
-              arrivalSequence === undefined ||
-              departure.stop_sequence >= arrivalSequence
-            ) {
-              return [];
-            }
-            return [departure.trip.service_date];
-          }),
-        ),
-      ).sort();
+      for (const [tripId, departures] of groupByTrip(departureCalls)) {
+        const journey = pickJourneyStops(
+          departures,
+          arrivalsByTrip.get(tripId) ?? [],
+        );
+        if (!journey) continue;
+
+        serviceDates.add(journey.departure.trip.service_date);
+      }
+
+      return Array.from(serviceDates).sort();
     }),
 
   getSchedule: publicProcedure
@@ -120,38 +146,38 @@ export const searchRouter = createTRPCRouter({
 
       return trips
         .flatMap((trip) => {
-          const departure = trip.stop_times.find(
-            (stop) => stop.stop_id === input.dep_stop_id,
+          const journey = pickJourneyStops(
+            trip.stop_times.filter(
+              (call) => call.stop_id === input.dep_stop_id,
+            ),
+            trip.stop_times.filter(
+              (call) => call.stop_id === input.arriv_stop_id,
+            ),
           );
-          const arrival = trip.stop_times.find(
-            (stop) => stop.stop_id === input.arriv_stop_id,
+
+          if (!journey) return [];
+
+          const { departure, arrival } = journey;
+          const durationMinutes = journeyDurationMinutes(
+            departure.departure_time,
+            arrival.arrival_time,
           );
 
-          if (
-            !departure ||
-            !arrival ||
-            departure.stop_sequence >= arrival.stop_sequence
-          ) {
-            return [];
-          }
-
-          const durationMinutes =
-            timeToMinutes(arrival.arrival_time) -
-            timeToMinutes(departure.departure_time);
-
-          if (durationMinutes < 0) return [];
+          if (durationMinutes === null) return [];
 
           const minPriceCents = calculateJourneyPriceCents(durationMinutes, 2);
 
-          return [{
-            trip_id: trip.trip_id,
-            train_number: trip.route.train.train_number,
-            departure_time: departure.departure_time,
-            arrival_time: arrival.arrival_time,
-            duration_minutes: durationMinutes,
-            duration: minutesToDuration(durationMinutes),
-            min_price: centsToEuros(minPriceCents),
-          }];
+          return [
+            {
+              trip_id: trip.trip_id,
+              train_number: trip.route.train.train_number,
+              departure_time: departure.departure_time,
+              arrival_time: arrival.arrival_time,
+              duration_minutes: durationMinutes,
+              duration: minutesToDuration(durationMinutes),
+              min_price: centsToEuros(minPriceCents),
+            },
+          ];
         })
         .sort((a, b) => a.departure_time.localeCompare(b.departure_time));
     }),

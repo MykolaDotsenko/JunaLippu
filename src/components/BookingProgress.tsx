@@ -2,7 +2,7 @@ import React from "react";
 
 const steps = ["Search", "Train", "Seat", "Review"];
 
-const BookingProgress: React.FC<{ current: 1 | 2 | 3 | 4 }> = ({ current }) => (
+const BookingProgress = ({ current }: { current: 1 | 2 | 3 | 4 }) => (
   <div aria-label={`Booking progress: step ${current} of 4`} className="mb-8">
     <p className="mb-3 text-sm font-semibold text-slate-500">
       Step {current} of 4 · {steps[current - 1]}
@@ -15,7 +15,9 @@ const BookingProgress: React.FC<{ current: 1 | 2 | 3 | 4 }> = ({ current }) => (
               index < current ? "bg-blue-600" : "bg-slate-200"
             }`}
           />
-          <span className="hidden text-xs font-medium text-slate-500 sm:block">{step}</span>
+          <span className="hidden text-xs font-medium text-slate-500 sm:block">
+            {step}
+          </span>
         </div>
       ))}
     </div>

@@ -18,18 +18,24 @@ The product scope is intentionally focused: **one-way journeys for one passenger
 ## Product flow
 
 ```text
-Search
+Search                /
   ↓
-Choose train
+Choose train          /trains
   ↓
-Choose class + seat
+Choose class + seat   /seats
   ↓
-Review booking
+Review booking        /review
   ↓
 Google sign-in (if needed)
   ↓
-Reservation confirmed
+Reservation confirmed /confirmation
+  ↓
+Past reservations     /bookings
 ```
+
+The earlier PascalCase routes (`/BookingJourney`, `/Journey`, `/ReviewBooking`,
+`/BookingSuccess`) permanently redirect to the routes above, so links shared
+before the rename still resolve.
 
 The UI is mobile-first and has explicit loading, empty, invalid-link and error recovery states throughout the booking flow.
 
@@ -44,10 +50,12 @@ The server:
 - loads journey time, service date and train details from the database;
 - validates that the selected seat belongs to the selected train and travel class;
 - re-checks seat availability on review and reservation;
-- calculates journey duration;
+- calculates journey duration, rejecting any segment whose arrival precedes its
+  departure (the dataset uses GTFS hour notation past 24:00 for overnight runs);
 - calculates money in integer cents;
 - creates the reservation for the authenticated user;
-- reloads the confirmation from the authenticated reservation record.
+- reloads the confirmation from the authenticated reservation record;
+- scopes every reservation read to the authenticated owner.
 
 ### Segment-aware seat inventory
 
@@ -63,13 +71,25 @@ prevents overlapping reservations even under concurrent requests.
 
 This also allows the same physical seat to be reused later on the same train when journey segments do not overlap.
 
+The constraint — not the availability check — is what makes concurrency safe: a
+unique-violation from a racing request is translated into a seat conflict, and
+an integration test reserves the same seat twice in parallel to prove exactly
+one booking survives.
+
+### Repeated station calls
+
+A trip may call at the same station twice (loop and turnaround services), so a
+single station lookup is ambiguous. Search and booking pair the earliest
+departure that still has a later arrival, which keeps the journey deterministic
+and always directionally valid.
+
 ## Demo timetable
 
 The bundled railway CSV dataset contains historical sample data.
 
 Each `Trip` now has an explicit `service_date`; application logic no longer derives dates from the format of `trip_id`.
 
-The search UI queries the database for available service dates after a route is selected and only enables dates that contain a direct demo journey.
+The search UI queries the database for available service dates after a route is selected, offers only dates that contain a direct demo journey, and states the covered range in the form.
 
 ## Architecture
 
@@ -111,12 +131,40 @@ cp .env.example .env
 
 Configure Google OAuth credentials in `.env`.
 
-Production configuration fails fast when required authentication secrets are missing.
+Production configuration fails fast when required authentication secrets are
+missing. In development the Google provider is not registered when its
+credentials are absent; sign-in controls are disabled and the reason is logged.
 
 ### Create the database
 
 ```bash
-pnpm db:push
+pnpm db:migrate
+```
+
+The schema is owned by the migrations in `prisma/migrations`. Use
+`pnpm exec prisma migrate dev --name what_changed` for schema changes; CI fails
+when `schema.prisma` and the migrations disagree.
+
+#### Existing databases
+
+A database created before migrations existed — with `prisma db push`, including
+one populated from the CSV dataset — already has tables, so
+`prisma migrate deploy` stops with `P3005: The database schema is not empty`.
+Before marking the baseline as applied, verify that the existing database
+matches `prisma/schema.prisma`:
+
+```bash
+pnpm exec prisma migrate diff \
+  --from-schema-datasource prisma/schema.prisma \
+  --to-schema-datamodel prisma/schema.prisma \
+  --exit-code
+```
+
+Only when that command reports no drift should the baseline be recorded:
+
+```bash
+pnpm exec prisma migrate resolve --applied 0_init
+pnpm db:migrate
 ```
 
 The historical railway CSV files are stored in `prisma/`. See `prisma/README.txt` for the legacy import instructions.
@@ -137,23 +185,37 @@ Pure domain utilities:
 pnpm test
 ```
 
-Database booking invariants and tRPC booking integration:
+Static checks:
 
 ```bash
-pnpm exec prisma db push --force-reset
+pnpm typecheck
+pnpm format:check
+pnpm lint
+```
+
+Database booking invariants and tRPC booking/search integration:
+
+```bash
+pnpm db:migrate
 pnpm test:db
 pnpm test:integration
 ```
 
+These suites take over the database named by `DATABASE_URL`.
+
 Mobile browser smoke/E2E:
 
 ```bash
-node tests/e2e-seed.mjs
+pnpm e2e:seed
 pnpm exec playwright install chromium
 pnpm test:e2e
 ```
 
 The database invariant suite verifies that overlapping seat reservations are rejected while the same seat can be reused on a later non-overlapping segment.
+
+The integration suites additionally cover reservation ownership, pagination,
+unauthenticated access, invalid and reversed segments, loop services, overnight
+journeys and concurrent booking of the same seat.
 
 ## Authentication
 
@@ -169,6 +231,10 @@ GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET
 ```
 
+`NEXT_PUBLIC_SITE_URL` is optional. When it is set to the absolute site URL,
+pages emit a canonical link and Open Graph `og:url`; when it is absent both are
+omitted.
+
 ## Payment scope
 
 JunaLippu does **not** collect card details or process real money.
@@ -183,11 +249,14 @@ Pull requests and pushes to `main` verify:
 pnpm install --frozen-lockfile
 prisma validate
 prisma generate
-prisma db push --force-reset
+prisma migrate deploy
+migration/schema drift check
+tsc --noEmit
+prettier --check
+eslint
 unit tests
 database invariant tests
-booking integration tests
-eslint
+booking and search integration tests
 next build
 mobile Chromium E2E
 ```
@@ -201,11 +270,22 @@ The project started as a team learning project in 2024. The later refactors pres
 A commercial ticketing system would still require:
 
 - temporary reservation holds and expiry semantics;
+- reservation cancellation and refund handling;
 - transactional payment integration;
-- browser-level end-to-end and accessibility regression tests;
-- observability, audit logging and alerting;
-- production migration/deployment infrastructure;
-- a production-grade database rather than SQLite.
+- automated accessibility regression tests;
+- log aggregation, tracing, alerting and audit trails on top of the structured
+  request logging that exists today;
+- deployment infrastructure and a production-grade database rather than SQLite;
+- multi-passenger and return journeys, and localisation beyond English.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the setup, the checks to run before
+a pull request and the rules that any change to the booking path has to respect.
+
+## License
+
+[MIT](LICENSE).
 
 ## Disclaimer
 

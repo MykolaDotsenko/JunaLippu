@@ -14,6 +14,7 @@ import superjson from "superjson";
 import { ZodError } from "zod";
 
 import { db } from "~/server/db";
+import { logger } from "~/server/logger";
 
 /**
  * 1. CONTEXT
@@ -101,6 +102,45 @@ export const createCallerFactory = t.createCallerFactory;
  */
 export const createTRPCRouter = t.router;
 
+const SLOW_REQUEST_MS = 500;
+
+const CLIENT_ERROR_CODES = new Set([
+  "BAD_REQUEST",
+  "UNAUTHORIZED",
+  "FORBIDDEN",
+  "NOT_FOUND",
+  "CONFLICT",
+  "PRECONDITION_FAILED",
+  "PAYLOAD_TOO_LARGE",
+  "UNPROCESSABLE_CONTENT",
+  "TOO_MANY_REQUESTS",
+]);
+
+const observedProcedure = t.procedure.use(async ({ path, type, next }) => {
+  const startedAt = Date.now();
+  const result = await next();
+  const durationMs = Date.now() - startedAt;
+
+  if (!result.ok) {
+    const code = result.error.code;
+    const event = CLIENT_ERROR_CODES.has(code)
+      ? "trpc.request.rejected"
+      : "trpc.request.failed";
+
+    logger[CLIENT_ERROR_CODES.has(code) ? "warn" : "error"](event, {
+      path,
+      type,
+      code,
+      durationMs,
+      message: result.error.message,
+    });
+  } else if (durationMs >= SLOW_REQUEST_MS) {
+    logger.warn("trpc.request.slow", { path, type, durationMs });
+  }
+
+  return result;
+});
+
 /**
  * Public (unauthenticated) procedure
  *
@@ -108,7 +148,7 @@ export const createTRPCRouter = t.router;
  * guarantee that a user querying is authorized, but you can still access user session data if they
  * are logged in.
  */
-export const publicProcedure = t.procedure;
+export const publicProcedure = observedProcedure;
 
 /**
  * Protected (authenticated) procedure
@@ -118,7 +158,7 @@ export const publicProcedure = t.procedure;
  *
  * @see https://trpc.io/docs/procedures
  */
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
+export const protectedProcedure = observedProcedure.use(({ ctx, next }) => {
   if (!ctx.session || !ctx.session.user) {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }

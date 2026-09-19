@@ -3,6 +3,7 @@ import { SessionProvider } from "next-auth/react";
 import { type AppType } from "next/app";
 import { Inter } from "next/font/google";
 
+import ErrorBoundary from "~/components/ErrorBoundary";
 import { api } from "~/utils/api";
 
 import "~/styles/globals.css";
@@ -18,7 +19,9 @@ const MyApp: AppType<{ session: Session | null }> = ({
 }) => (
   <SessionProvider session={session}>
     <div className={`min-h-screen font-sans ${inter.variable}`}>
-      <Component {...pageProps} />
+      <ErrorBoundary>
+        <Component {...pageProps} />
+      </ErrorBoundary>
     </div>
   </SessionProvider>
 );
