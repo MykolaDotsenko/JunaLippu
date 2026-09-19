@@ -2,13 +2,19 @@
 
 [![CI](https://github.com/MykolaDotsenko/JunaLippu/actions/workflows/ci.yml/badge.svg)](https://github.com/MykolaDotsenko/JunaLippu/actions/workflows/ci.yml)
 
-JunaLippu is a full-stack railway-booking portfolio application for searching
-historical Finnish train journeys, choosing an available seat, authenticating
-with Google, and creating a reservation.
+**A reliability-focused full-stack Finnish railway booking demo built with Next.js, tRPC, Prisma, NextAuth and Playwright.**
 
-The product scope is intentionally focused: **one-way journeys for one
-passenger**. The engineering goal is a small booking flow whose critical rules
-are enforced by the server and database rather than by browser state.
+Search historical Finnish train journeys, choose an available seat, authenticate
+with Google and create an owner-scoped reservation. The product scope is
+intentionally focused — **one-way journeys for one passenger** — while the
+engineering goes deeper: segment-aware inventory, race-safe booking, exact GTFS
+time handling, reproducible demo data and end-to-end regression coverage.
+
+<p align="center">
+  <img src="public/screenshots/junalippu-home.jpg" alt="JunaLippu homepage showing the railway search experience, verified demo routes and engineering highlights" width="1100" />
+</p>
+
+> **Portfolio demo:** historical timetable data only. No real payments are processed.
 
 ## Why this project is interesting
 
