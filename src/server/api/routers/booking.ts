@@ -9,7 +9,7 @@ import {
   timeToMinutes,
 } from "~/server/api/lib/journey";
 import {
-  createTRPCContext,
+  type createTRPCContext,
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
