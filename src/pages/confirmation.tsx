@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 
@@ -10,6 +10,11 @@ import { api } from "~/utils/api";
 
 const ConfirmationPage = () => {
   const router = useRouter();
+  const [routerReady, setRouterReady] = useState(false);
+
+  useEffect(() => {
+    if (router.isReady) setRouterReady(true);
+  }, [router.isReady]);
   const reservationId = Number(
     typeof router.query.reservationId === "string"
       ? router.query.reservationId
@@ -21,7 +26,7 @@ const ConfirmationPage = () => {
     { enabled: reservationId > 0, retry: false },
   );
 
-  if (!router.isReady) {
+  if (!routerReady) {
     return (
       <PageLayout title="Reservation confirmed · JunaLippu" width="sm">
         <LoadingPanel className="h-80" />
