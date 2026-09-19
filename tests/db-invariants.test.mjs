@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { Prisma, PrismaClient } from "@prisma/client";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { Prisma, PrismaClient } from "../src/generated/prisma/client.ts";
 
-const db = new PrismaClient();
+const adapter = new PrismaBetterSqlite3(
+  { url: process.env.DATABASE_URL ?? "file:./ci.db" },
+  { timestampFormat: "unixepoch-ms" },
+);
+const db = new PrismaClient({ adapter });
 
 const reset = async () => {
   await db.reservationSegment.deleteMany();
