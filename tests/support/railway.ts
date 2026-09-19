@@ -1,12 +1,17 @@
 import { db } from "../../src/server/db";
 
 const assertTestDatabase = () => {
-  if (process.env.NODE_ENV !== "test") {
+  const databaseUrl = process.env.DATABASE_URL ?? "";
+  const isolated =
+    process.env.NODE_ENV === "test" &&
+    process.env.JUNALIPPU_TEST_DB === "1" &&
+    databaseUrl.startsWith("file:") &&
+    databaseUrl.includes("junalippu-test-");
+
+  if (!isolated) {
     throw new Error(
-      "Refusing to wipe the database: NODE_ENV is not 'test'. These helpers " +
-        "delete every row in the database named by DATABASE_URL, which in a " +
-        "normal setup is your development data. Run the pnpm test scripts, " +
-        "which set NODE_ENV for you.",
+      "Refusing to wipe the database: this suite requires the isolated " +
+        "temporary database created by the repository test runner.",
     );
   }
 };

@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 const TRAINS_URL =
   "/trains?depStopId=E2EA&arrivStopId=E2EC&departureCity=Alpha&arrivalCity=Gamma&startDate=2024-05-06";
 
-test("mobile booking flow reaches server-verified review", async ({ page }) => {
+test("booking flow reaches server-verified review", async ({ page }) => {
   await page.goto(TRAINS_URL);
 
   await expect(
@@ -221,4 +221,63 @@ test("a failed dates request is reported, not shown as no dates", async ({
   await expect(
     page.getByRole("button", { name: "Search trains" }),
   ).toBeDisabled();
+});
+
+
+test("verified quick-start routes always expose a service date", async ({
+  page,
+}) => {
+  for (const route of [
+    { label: "Imatra → Lappeenranta", date: "01 Jun 2024" },
+    { label: "Tampere → Jyväskylä", date: "01 Jul 2024" },
+  ]) {
+    await page.goto("/");
+    await page.getByRole("link", { name: new RegExp(route.label) }).click();
+
+    const serviceDate = page.getByLabel("Service date");
+    await expect(serviceDate).toBeEnabled();
+    await expect(serviceDate.locator("option")).toContainText([route.date]);
+  }
+});
+
+test("confirmation asks a guest to authenticate before loading private data", async ({
+  page,
+}) => {
+  await page.goto("/confirmation?reservationId=123");
+
+  await expect(
+    page.getByRole("heading", { name: "Sign in to view this reservation" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Continue with Google" }),
+  ).toBeVisible();
+  await expect(page.getByText("We could not load this reservation.")).toHaveCount(
+    0,
+  );
+});
+
+test("server-error recovery never claims a reservation was not created", async ({
+  page,
+}) => {
+  await page.goto("/500");
+
+  await expect(
+    page.getByRole("heading", { name: "Something went wrong on our side." }),
+  ).toBeVisible();
+  await expect(page.getByText("No reservation was created.")).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Check My bookings" }),
+  ).toBeVisible();
+});
+
+test("responses include the baseline browser security headers", async ({
+  request,
+}) => {
+  const response = await request.get("/");
+  const headers = response.headers();
+
+  expect(headers["x-content-type-options"]).toBe("nosniff");
+  expect(headers["x-frame-options"]).toBe("DENY");
+  expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+  expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
 });

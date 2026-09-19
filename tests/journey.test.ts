@@ -4,22 +4,23 @@ import test from "node:test";
 import {
   calculateJourneyPriceCents,
   centsToEuros,
+  compareGtfsTimes,
   FIRST_CLASS_FARE_MULTIPLIER,
-  journeyDurationMinutes,
-  minutesToDuration,
-  pickJourneyStops,
+  journeyDurationSeconds,
   SECOND_CLASS_FARE_CENTS_PER_HOUR,
+  secondsToDuration,
   segmentSequences,
-  timeToMinutes,
+  timeToSeconds,
+  pickJourneyStops,
 } from "../src/server/api/lib/journey";
 
-void test("timeToMinutes parses GTFS timetable times", () => {
-  assert.equal(timeToMinutes("07:25:00"), 445);
-  assert.equal(timeToMinutes("7:05:00"), 425);
-  assert.equal(timeToMinutes("31:00:00"), 1860);
+void test("timeToSeconds parses the full GTFS time value", () => {
+  assert.equal(timeToSeconds("07:25:39"), 26739);
+  assert.equal(timeToSeconds("7:05:00"), 25500);
+  assert.equal(timeToSeconds("31:00:00"), 111600);
 });
 
-void test("timeToMinutes rejects malformed GTFS times", () => {
+void test("timeToSeconds rejects malformed GTFS times", () => {
   for (const value of [
     "",
     "07",
@@ -30,57 +31,67 @@ void test("timeToMinutes rejects malformed GTFS times", () => {
     "-1:00:00",
     " 07:25:00",
   ]) {
-    assert.equal(timeToMinutes(value), null, value);
+    assert.equal(timeToSeconds(value), null, value);
   }
 });
 
-void test("minutesToDuration formats compact journey durations", () => {
-  assert.equal(minutesToDuration(121), "2 h 01 min");
-  assert.equal(minutesToDuration(60), "1 h 00 min");
-  assert.equal(minutesToDuration(0), "0 h 00 min");
+void test("compareGtfsTimes sorts numeric GTFS time, not text", () => {
+  assert.ok(compareGtfsTimes("7:00:00", "10:00:00") < 0);
+  assert.ok(compareGtfsTimes("24:30:00", "9:00:00") > 0);
+  assert.equal(compareGtfsTimes("7:00:00", "07:00:00"), 0);
 });
 
-void test("pricing uses integer cents and class multiplier", () => {
-  const secondClass = calculateJourneyPriceCents(120, 2);
-  const firstClass = calculateJourneyPriceCents(120, 1);
+void test("secondsToDuration rounds only the human-readable label", () => {
+  assert.equal(secondsToDuration(121 * 60), "2 h 01 min");
+  assert.equal(secondsToDuration(47 * 60 + 39), "0 h 48 min");
+  assert.equal(secondsToDuration(0), "0 h 00 min");
+});
+
+void test("pricing uses exact elapsed seconds and integer cents", () => {
+  const secondClass = calculateJourneyPriceCents(120 * 60, 2);
+  const firstClass = calculateJourneyPriceCents(120 * 60, 1);
 
   assert.equal(secondClass, 3840);
   assert.equal(firstClass, 5760);
   assert.equal(centsToEuros(secondClass), 38.4);
+
+  assert.equal(calculateJourneyPriceCents(47 * 60 + 39, 2), 1525);
 });
 
 void test("pricing follows the published tariff constants", () => {
   assert.equal(
-    calculateJourneyPriceCents(60, 2),
+    calculateJourneyPriceCents(60 * 60, 2),
     SECOND_CLASS_FARE_CENTS_PER_HOUR,
   );
   assert.equal(
-    calculateJourneyPriceCents(60, 1),
+    calculateJourneyPriceCents(60 * 60, 1),
     Math.round(SECOND_CLASS_FARE_CENTS_PER_HOUR * FIRST_CLASS_FARE_MULTIPLIER),
   );
-  assert.equal(Number.isInteger(calculateJourneyPriceCents(37, 1)), true);
+  assert.equal(Number.isInteger(calculateJourneyPriceCents(37 * 60 + 17, 1)), true);
 });
 
-void test("journeyDurationMinutes measures same-day journeys", () => {
-  assert.equal(journeyDurationMinutes("07:25:00", "09:26:00"), 121);
-  assert.equal(journeyDurationMinutes("10:00:00", "10:00:00"), 0);
+void test("journeyDurationSeconds preserves GTFS seconds", () => {
+  assert.equal(journeyDurationSeconds("07:25:00", "09:26:00"), 7260);
+  assert.equal(journeyDurationSeconds("10:00:00", "10:47:39"), 2859);
+  assert.equal(journeyDurationSeconds("10:00:00", "10:00:00"), 0);
 });
 
-void test("journeyDurationMinutes handles journeys past midnight", () => {
-  assert.equal(journeyDurationMinutes("23:50:00", "24:30:00"), 40);
-  assert.equal(journeyDurationMinutes("22:00:00", "30:00:00"), 480);
-  assert.equal(journeyDurationMinutes("23:00:00", "31:00:00"), 480);
+void test("journeyDurationSeconds handles journeys past midnight", () => {
+  assert.equal(journeyDurationSeconds("23:50:00", "24:30:00"), 2400);
+  assert.equal(journeyDurationSeconds("22:00:00", "30:00:00"), 28800);
+  assert.equal(journeyDurationSeconds("23:00:00", "31:00:00"), 28800);
 });
 
-void test("journeyDurationMinutes rejects an arrival before its departure", () => {
-  assert.equal(journeyDurationMinutes("23:50:00", "00:30:00"), null);
-  assert.equal(journeyDurationMinutes("12:00:00", "11:00:00"), null);
+void test("journeyDurationSeconds rejects an arrival before its departure", () => {
+  assert.equal(journeyDurationSeconds("23:50:00", "00:30:00"), null);
+  assert.equal(journeyDurationSeconds("12:00:00", "11:00:00"), null);
+  assert.equal(journeyDurationSeconds("12:00:50", "12:00:10"), null);
 });
 
-void test("journeyDurationMinutes rejects unparsable times", () => {
-  assert.equal(journeyDurationMinutes("not-a-time", "09:26:00"), null);
-  assert.equal(journeyDurationMinutes("07:25:00", "oops"), null);
-  assert.equal(journeyDurationMinutes("07:99:00", "09:26:00"), null);
+void test("journeyDurationSeconds rejects unparsable times", () => {
+  assert.equal(journeyDurationSeconds("not-a-time", "09:26:00"), null);
+  assert.equal(journeyDurationSeconds("07:25:00", "oops"), null);
+  assert.equal(journeyDurationSeconds("07:99:00", "09:26:00"), null);
 });
 
 void test("pickJourneyStops pairs the earliest valid departure and arrival", () => {

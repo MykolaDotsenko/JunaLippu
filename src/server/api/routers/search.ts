@@ -3,9 +3,10 @@ import { z } from "zod";
 import {
   calculateJourneyPriceCents,
   centsToEuros,
-  journeyDurationMinutes,
-  minutesToDuration,
+  compareGtfsTimes,
+  journeyDurationSeconds,
   pickJourneyStops,
+  secondsToDuration,
 } from "~/server/api/lib/journey";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
@@ -68,6 +69,7 @@ export const searchRouter = createTRPCRouter({
         select: {
           trip_id: true,
           stop_sequence: true,
+          departure_time: true,
           trip: {
             select: {
               service_date: true,
@@ -86,6 +88,7 @@ export const searchRouter = createTRPCRouter({
         select: {
           trip_id: true,
           stop_sequence: true,
+          arrival_time: true,
         },
       });
 
@@ -98,6 +101,12 @@ export const searchRouter = createTRPCRouter({
           arrivalsByTrip.get(tripId) ?? [],
         );
         if (!journey) continue;
+
+        const durationSeconds = journeyDurationSeconds(
+          journey.departure.departure_time,
+          journey.arrival.arrival_time,
+        );
+        if (durationSeconds === null) continue;
 
         serviceDates.add(journey.departure.trip.service_date);
       }
@@ -158,14 +167,14 @@ export const searchRouter = createTRPCRouter({
           if (!journey) return [];
 
           const { departure, arrival } = journey;
-          const durationMinutes = journeyDurationMinutes(
+          const durationSeconds = journeyDurationSeconds(
             departure.departure_time,
             arrival.arrival_time,
           );
 
-          if (durationMinutes === null) return [];
+          if (durationSeconds === null) return [];
 
-          const minPriceCents = calculateJourneyPriceCents(durationMinutes, 2);
+          const minPriceCents = calculateJourneyPriceCents(durationSeconds, 2);
 
           return [
             {
@@ -173,12 +182,14 @@ export const searchRouter = createTRPCRouter({
               train_number: trip.route.train.train_number,
               departure_time: departure.departure_time,
               arrival_time: arrival.arrival_time,
-              duration_minutes: durationMinutes,
-              duration: minutesToDuration(durationMinutes),
+              duration_seconds: durationSeconds,
+              duration: secondsToDuration(durationSeconds),
               min_price: centsToEuros(minPriceCents),
             },
           ];
         })
-        .sort((a, b) => a.departure_time.localeCompare(b.departure_time));
+        .sort((a, b) =>
+          compareGtfsTimes(a.departure_time, b.departure_time),
+        );
     }),
 });

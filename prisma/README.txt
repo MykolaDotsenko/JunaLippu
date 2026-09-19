@@ -1,52 +1,59 @@
-Database setup
+Database and demo timetable
 
-1) Create/update the SQLite schema:
+Recommended setup
+
+1) Apply the migration history:
    pnpm db:migrate
 
-   The schema is owned by prisma/migrations. Do not use `prisma db push`:
-   it applies the schema without recording a migration, and CI fails when
-   the database and prisma/schema.prisma disagree.
+2) Load the bundled historical demo timetable:
+   pnpm db:seed
 
-   For a database that predates the migrations (created with `db push` or
-   populated by the CSV import below), verify it matches schema.prisma first:
+Or run both:
+   pnpm setup
+
+The seed uses Prisma directly, is idempotent for an already-complete demo
+dataset, and refuses to overwrite a partially populated or unrelated railway
+database.
+
+The schema is owned by prisma/migrations. Do not use prisma db push as the
+normal workflow because it changes the schema without recording a migration.
+
+Existing databases
+
+For a database that predates the migration history, verify it matches
+prisma/schema.prisma before recording the baseline:
+
    pnpm exec prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --exit-code
 
-   Only when that reports no drift, record the baseline once:
+Only when that reports no drift:
+
    pnpm exec prisma migrate resolve --applied 0_init
-
-2) Generate Prisma Client:
-   pnpm prisma generate
-
-3) Optional: inspect the database:
-   pnpm prisma studio
-
-Legacy CSV import
-
-The railway dataset is stored in prisma/*.csv. The Trip CSV now has four columns:
-
-trip_id,route_id,service_id,service_date
-
-where service_date is an explicit YYYY-MM-DD value used by application queries.
-
-To import with sqlite3:
-
-1) Open the prisma directory.
-2) Start sqlite3 and open db.sqlite.
-3) Enable CSV mode:
-   .mode csv
-4) Import in dependency order:
-
-.import path/prisma/1_Train.csv Train
-.import path/prisma/2_Car.csv Car
-.import path/prisma/3_Seat.csv Seat
-.import path/prisma/4_Train_composition.csv Train_composition
-.import path/prisma/6_Route.csv Route
-.import path/prisma/9_Calendar.csv Calendar
-.import path/prisma/5_Trip.csv Trip
-.import path/prisma/8_Stop.csv Stop
-.import path/prisma/7_Stop_time.csv Stop_time
-
-Authentication/reservation tables and ReservationSegment are intentionally empty after dataset import. They are populated by application usage.
-
-For automated CI tests the repository uses a fresh SQLite database created with:
    pnpm db:migrate
+
+CSV dataset
+
+The historical source files remain in prisma/*.csv:
+
+1_Train.csv
+2_Car.csv
+3_Seat.csv
+4_Train_composition.csv
+5_Trip.csv
+6_Route.csv
+7_Stop_time.csv
+8_Stop.csv
+9_Calendar.csv
+
+Trip rows use:
+   trip_id,route_id,service_id,service_date
+
+Seat.csv is a legacy five-column source and still contains an obsolete third
+availability column. The application seed intentionally ignores that legacy
+column and maps the remaining values into the current four-field Seat model.
+
+For that reason direct sqlite3 ".import ... Seat" is no longer a supported
+setup path. Use pnpm db:seed so the legacy source format is translated and the
+resulting row counts are verified.
+
+Authentication and reservation tables, including ReservationSegment, are not
+part of the CSV dataset. They are populated by application usage.

@@ -16,14 +16,23 @@ const ServerErrorPage = () => (
         Something went wrong on our side.
       </h1>
       <p className="mt-3 text-red-800">
-        No reservation was created. Please try again in a moment.
+        We could not confirm the result of your last action. If you just
+        reserved a seat, check My bookings before trying again.
       </p>
-      <Link
-        href="/"
-        className="mt-7 inline-flex min-h-12 items-center justify-center rounded-xl bg-slate-950 px-6 font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-      >
-        Back to search
-      </Link>
+      <div className="mt-7 grid gap-3 sm:grid-cols-2">
+        <Link
+          href="/bookings"
+          className="inline-flex min-h-12 items-center justify-center rounded-xl border border-red-300 bg-white px-6 font-semibold text-red-900 transition hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700"
+        >
+          Check My bookings
+        </Link>
+        <Link
+          href="/"
+          className="inline-flex min-h-12 items-center justify-center rounded-xl bg-slate-950 px-6 font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+        >
+          Back to search
+        </Link>
+      </div>
     </div>
   </PageLayout>
 );

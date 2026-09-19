@@ -9,7 +9,7 @@ invariants.
 ```bash
 pnpm install --frozen-lockfile
 cp .env.example .env
-pnpm db:migrate
+pnpm setup
 pnpm dev
 ```
 
@@ -31,19 +31,18 @@ pnpm test:integration
 pnpm build
 ```
 
-Browser tests need a built app and a seeded database:
+Browser tests need a production build:
 
 ```bash
-pnpm e2e:seed
+pnpm build
 pnpm exec playwright install chromium
 pnpm test:e2e
 ```
 
-The integration and browser suites delete every row in the database named by
-`DATABASE_URL`, so they refuse to run unless `NODE_ENV=test`. The `pnpm`
-scripts above set it; invoking the test files directly does not. Point
-`DATABASE_URL` at a scratch file rather than a database whose contents you care
-about.
+Database, integration, and browser suites create their own temporary SQLite
+database. They never reuse the `DATABASE_URL` from your normal development
+environment, and destructive helpers refuse to run outside the repository test
+runner.
 
 ## Database changes
 
@@ -70,6 +69,10 @@ Two rules carry the product:
   constraint, not by an availability check alone.
 
 A change that touches either needs a test that would fail without it.
+
+Changes to the bundled CSV data or home-page quick-start routes also need the
+dataset-contract suite to stay green. Do not rely only on synthetic fixtures
+for timetable assumptions.
 
 ## Frontend conventions
 

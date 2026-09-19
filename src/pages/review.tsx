@@ -187,7 +187,24 @@ const ReviewPage = () => {
                   role="alert"
                   className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
                 >
-                  {reserve.error.message}
+                  <p>{reserve.error.message}</p>
+                  {reserve.error.data?.code === "CONFLICT" && (
+                    <Link
+                      href={{
+                        pathname: "/seats",
+                        query: {
+                          tripId,
+                          depStopId,
+                          arrivStopId,
+                          date: review.data.service_date,
+                          travelClass: String(effectiveTravelClass),
+                        },
+                      }}
+                      className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-red-800 px-4 font-semibold text-white transition hover:bg-red-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-2"
+                    >
+                      Choose another seat
+                    </Link>
+                  )}
                 </div>
               )}
 

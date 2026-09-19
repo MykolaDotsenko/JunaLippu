@@ -6,10 +6,17 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       DATABASE_URL: "file:./ci.db"
       NEXTAUTH_URL: "http://localhost:3000"
@@ -19,16 +26,19 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Enable pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -49,6 +59,9 @@ jobs:
             --to-schema-datamodel prisma/schema.prisma \
             --exit-code && echo "Schema and migrations are in sync."
 
+      - name: Seed bundled demo timetable
+        run: pnpm db:seed
+
       - name: Typecheck
         run: pnpm typecheck
 
@@ -58,7 +71,7 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Unit tests
+      - name: Unit and dataset-contract tests
         run: pnpm test
 
       - name: Database invariant tests
@@ -70,11 +83,8 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Seed browser test database
-        run: pnpm e2e:seed
-
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Mobile browser E2E
+      - name: Browser E2E
         run: pnpm test:e2e
