@@ -223,7 +223,6 @@ test("a failed dates request is reported, not shown as no dates", async ({
   ).toBeDisabled();
 });
 
-
 test("verified quick-start routes always expose a service date", async ({
   page,
 }) => {
@@ -251,9 +250,9 @@ test("confirmation asks a guest to authenticate before loading private data", as
   await expect(
     page.getByRole("button", { name: "Continue with Google" }),
   ).toBeVisible();
-  await expect(page.getByText("We could not load this reservation.")).toHaveCount(
-    0,
-  );
+  await expect(
+    page.getByText("We could not load this reservation."),
+  ).toHaveCount(0);
 });
 
 test("server-error recovery never claims a reservation was not created", async ({
@@ -279,5 +278,7 @@ test("responses include the baseline browser security headers", async ({
   expect(headers["x-content-type-options"]).toBe("nosniff");
   expect(headers["x-frame-options"]).toBe("DENY");
   expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
-  expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
+  expect(headers["content-security-policy"]).toContain(
+    "frame-ancestors 'none'",
+  );
 });
