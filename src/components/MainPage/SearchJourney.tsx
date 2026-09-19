@@ -5,6 +5,13 @@ import "react-datepicker/dist/react-datepicker.css";
 
 import { api } from "~/utils/api";
 
+const toLocalDateString = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const SearchJourney: React.FC = () => {
   const router = useRouter();
   const { data: stations = [], isLoading } = api.search.getStationName.useQuery();
@@ -28,8 +35,8 @@ const SearchJourney: React.FC = () => {
         arrivStopId: to,
         departureCity: departure?.stop_name ?? from,
         arrivalCity: arrival?.stop_name ?? to,
-        startDate: startDate.toISOString(),
-        returnDate: returnDate?.toISOString() ?? "",
+        startDate: toLocalDateString(startDate),
+        returnDate: returnDate ? toLocalDateString(returnDate) : "",
         passengers: passengers.toString(),
       },
     });
@@ -89,8 +96,7 @@ const SearchJourney: React.FC = () => {
                 selected={startDate}
                 onChange={(date: Date | null) => setStartDate(date)}
                 dateFormat="dd/MM/yyyy"
-                minDate={new Date()}
-                placeholderText="Select start date"
+                placeholderText="Select service date"
                 className="rounded-lg border border-gray-300 p-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -100,7 +106,6 @@ const SearchJourney: React.FC = () => {
               <DatePicker
                 selected={returnDate}
                 onChange={(date: Date | null) => setReturnDate(date)}
-                minDate={startDate ?? new Date()}
                 dateFormat="dd/MM/yyyy"
                 placeholderText="Optional"
                 className="rounded-lg border border-gray-300 p-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -121,6 +126,10 @@ const SearchJourney: React.FC = () => {
               </select>
             </div>
           </div>
+
+          <p className="mb-3 text-sm text-white/90">
+            Demo timetable data in this repository contains 2024 service dates.
+          </p>
 
           {from && to && from === to && (
             <p className="mb-3 text-sm font-semibold text-red-700">
