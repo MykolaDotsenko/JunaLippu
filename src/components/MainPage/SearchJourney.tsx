@@ -124,7 +124,7 @@ const SearchJourney: React.FC = () => {
               <p className="mt-1 text-sm text-slate-500">One way · 1 passenger</p>
             </div>
             <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
-              Demo data · 2024
+              Demo timetable
             </span>
           </div>
 
