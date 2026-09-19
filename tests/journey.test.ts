@@ -67,7 +67,10 @@ void test("pricing follows the published tariff constants", () => {
     calculateJourneyPriceCents(60 * 60, 1),
     Math.round(SECOND_CLASS_FARE_CENTS_PER_HOUR * FIRST_CLASS_FARE_MULTIPLIER),
   );
-  assert.equal(Number.isInteger(calculateJourneyPriceCents(37 * 60 + 17, 1)), true);
+  assert.equal(
+    Number.isInteger(calculateJourneyPriceCents(37 * 60 + 17, 1)),
+    true,
+  );
 });
 
 void test("journeyDurationSeconds preserves GTFS seconds", () => {
