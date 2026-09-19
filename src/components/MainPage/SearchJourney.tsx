@@ -1,15 +1,17 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 
 import { api } from "~/utils/api";
 
-const toLocalDateString = (date: Date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+const formatServiceDate = (value: string) => {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return value;
+
+  return new Intl.DateTimeFormat("en", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(year, month - 1, day));
 };
 
 const SearchJourney: React.FC = () => {
@@ -25,12 +27,12 @@ const SearchJourney: React.FC = () => {
   const [to, setTo] = useState(
     typeof router.query.to === "string" ? router.query.to : "",
   );
-  const [date, setDate] = useState<Date | null>(null);
+  const [date, setDate] = useState("");
 
   useEffect(() => {
     setFrom(typeof router.query.from === "string" ? router.query.from : "");
     setTo(typeof router.query.to === "string" ? router.query.to : "");
-    setDate(null);
+    setDate("");
   }, [router.query.from, router.query.to]);
 
   const availableDatesQuery = api.search.getAvailableDates.useQuery(
@@ -45,11 +47,7 @@ const SearchJourney: React.FC = () => {
   );
 
   const availableDates = useMemo(
-    () =>
-      (availableDatesQuery.data ?? []).map((value) => {
-        const [year, month, day] = value.split("-").map(Number);
-        return new Date(year ?? 2024, (month ?? 1) - 1, day ?? 1);
-      }),
+    () => availableDatesQuery.data ?? [],
     [availableDatesQuery.data],
   );
 
@@ -60,10 +58,7 @@ const SearchJourney: React.FC = () => {
 
   const invalidRoute = Boolean(from && to && from === to);
   const selectedDateIsAvailable = Boolean(
-    date &&
-      availableDates.some(
-        (availableDate) => toLocalDateString(availableDate) === toLocalDateString(date),
-      ),
+    date && availableDates.includes(date),
   );
   const canSearch = Boolean(
     from && to && date && !invalidRoute && selectedDateIsAvailable,
@@ -72,33 +67,37 @@ const SearchJourney: React.FC = () => {
   const swapStations = () => {
     setFrom(to);
     setTo(from);
-    setDate(null);
+    setDate("");
   };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!canSearch || !date) return;
+    if (!canSearch) return;
 
     void router.push({
       pathname: "/BookingJourney",
       query: {
         depStopId: from,
         arrivStopId: to,
-        departureCity: stationNameById.get(from) ?? from,
-        arrivalCity: stationNameById.get(to) ?? to,
-        startDate: toLocalDateString(date),
+        startDate: date,
       },
     });
   };
 
   return (
-    <section id="search" className="relative overflow-hidden rounded-3xl bg-slate-950 shadow-xl">
+    <section
+      id="search"
+      className="relative overflow-hidden rounded-3xl bg-slate-950 shadow-xl"
+    >
       <div
         className="absolute inset-0 bg-cover bg-center opacity-50"
         style={{ backgroundImage: "url('/images/fiska.jpg')" }}
         aria-hidden="true"
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-slate-900/50" aria-hidden="true" />
+      <div
+        className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-slate-900/50"
+        aria-hidden="true"
+      />
 
       <div className="relative grid gap-8 px-5 py-10 sm:px-8 sm:py-14 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:px-12 lg:py-16">
         <div className="max-w-xl text-white">
@@ -129,7 +128,10 @@ const SearchJourney: React.FC = () => {
           </div>
 
           {stationsQuery.error && (
-            <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            <div
+              role="alert"
+              className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+            >
               We could not load stations.
               <button
                 type="button"
@@ -143,10 +145,15 @@ const SearchJourney: React.FC = () => {
 
           <div className="grid gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
             <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-slate-700">From</span>
+              <span className="mb-2 block text-sm font-semibold text-slate-700">
+                From
+              </span>
               <select
                 value={from}
-                onChange={(event) => { setFrom(event.target.value); setDate(null); }}
+                onChange={(event) => {
+                  setFrom(event.target.value);
+                  setDate("");
+                }}
                 disabled={stationsQuery.isLoading}
                 className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
               >
@@ -170,10 +177,15 @@ const SearchJourney: React.FC = () => {
             </button>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-slate-700">To</span>
+              <span className="mb-2 block text-sm font-semibold text-slate-700">
+                To
+              </span>
               <select
                 value={to}
-                onChange={(event) => { setTo(event.target.value); setDate(null); }}
+                onChange={(event) => {
+                  setTo(event.target.value);
+                  setDate("");
+                }}
                 disabled={stationsQuery.isLoading}
                 className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
               >
@@ -188,35 +200,47 @@ const SearchJourney: React.FC = () => {
           </div>
 
           <label className="mt-4 block">
-            <span className="mb-2 block text-sm font-semibold text-slate-700">Service date</span>
-            <DatePicker
-              selected={date}
-              onChange={(value: Date | null) => setDate(value)}
-              dateFormat="dd MMM yyyy"
-              includeDates={availableDates}
-              openToDate={availableDates[0]}
-              minDate={availableDates[0]}
-              maxDate={availableDates.at(-1)}
-              disabled={!from || !to || invalidRoute || availableDatesQuery.isLoading}
-              placeholderText={
-                !from || !to
+            <span className="mb-2 block text-sm font-semibold text-slate-700">
+              Service date
+            </span>
+            <select
+              value={date}
+              onChange={(event) => setDate(event.target.value)}
+              disabled={
+                !from ||
+                !to ||
+                invalidRoute ||
+                availableDatesQuery.isLoading ||
+                availableDates.length === 0
+              }
+              className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
+            >
+              <option value="">
+                {!from || !to
                   ? "Choose route first"
                   : availableDatesQuery.isLoading
                     ? "Loading dates…"
                     : availableDates.length === 0
                       ? "No dates available"
-                      : "Choose service date"
-              }
-              wrapperClassName="w-full"
-              className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-            />
+                      : "Select service date"}
+              </option>
+              {availableDates.map((serviceDate) => (
+                <option key={serviceDate} value={serviceDate}>
+                  {formatServiceDate(serviceDate)}
+                </option>
+              ))}
+            </select>
           </label>
 
-          {from && to && !invalidRoute && availableDatesQuery.isSuccess && availableDates.length === 0 && (
-            <p role="status" className="mt-3 text-sm font-medium text-amber-700">
-              No direct demo journeys are available for this route.
-            </p>
-          )}
+          {from &&
+            to &&
+            !invalidRoute &&
+            availableDatesQuery.isSuccess &&
+            availableDates.length === 0 && (
+              <p role="status" className="mt-3 text-sm font-medium text-amber-700">
+                No direct demo journeys are available for this route.
+              </p>
+            )}
 
           {invalidRoute && (
             <p role="alert" className="mt-3 text-sm font-medium text-red-700">
