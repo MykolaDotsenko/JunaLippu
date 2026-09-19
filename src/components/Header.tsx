@@ -7,7 +7,14 @@ const Header: React.FC = () => {
   const [aboutOpen, setAboutOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <>
+      <a
+        href="#main-content"
+        className="fixed left-4 top-2 z-[60] -translate-y-20 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition focus:translate-y-0"
+      >
+        Skip to content
+      </a>
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link
           href="/"
@@ -49,7 +56,8 @@ const Header: React.FC = () => {
           </div>
         </div>
       )}
-    </header>
+      </header>
+    </>
   );
 };
 
