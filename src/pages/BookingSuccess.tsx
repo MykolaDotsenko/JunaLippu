@@ -25,7 +25,7 @@ const BookingSuccess: React.FC = () => {
       </Head>
       <div className="min-h-screen bg-slate-50 text-slate-950">
         <Header />
-        <main className="mx-auto max-w-2xl px-4 py-12 sm:px-6 sm:py-16">
+        <main id="main-content" className="mx-auto max-w-2xl px-4 py-12 sm:px-6 sm:py-16">
           {reservation.isLoading && (
             <div className="h-80 animate-pulse rounded-3xl bg-slate-200" />
           )}
