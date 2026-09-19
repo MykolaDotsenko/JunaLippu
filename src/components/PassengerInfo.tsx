@@ -6,7 +6,7 @@ const PassengerInfo: React.FC = () => {
 
     const handleCreate = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
         event.preventDefault();
-        router.push('/RegistrationPage');
+        void router.push('/RegistrationPage');
     };
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
