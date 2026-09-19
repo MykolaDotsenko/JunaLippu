@@ -247,8 +247,8 @@ const toReservationSummary = (reservation: ReservationRecord) => {
 };
 
 export const bookingRouter = createTRPCRouter({
-  getJourneyDetails: publicProcedure
-    .input(segmentInput)
+  getQuote: publicProcedure
+    .input(classSegmentInput)
     .query(async ({ input, ctx }) => {
       const segment = await getJourneySegment(ctx, input);
 
@@ -261,6 +261,13 @@ export const bookingRouter = createTRPCRouter({
         departure_time: segment.departure.departure_time,
         arrival_time: segment.arrival.arrival_time,
         duration: minutesToDuration(segment.durationMinutes),
+        travel_class: input.travel_class,
+        price: centsToEuros(
+          calculateJourneyPriceCents(
+            segment.durationMinutes,
+            input.travel_class,
+          ),
+        ),
       };
     }),
 

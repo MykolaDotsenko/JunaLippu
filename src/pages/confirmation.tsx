@@ -8,7 +8,7 @@ import PageLayout from "~/components/PageLayout";
 import ReservationSummary from "~/components/ReservationSummary";
 import { api } from "~/utils/api";
 
-const ConfirmationPage: React.FC = () => {
+const ConfirmationPage = () => {
   const router = useRouter();
   const reservationId = Number(
     typeof router.query.reservationId === "string"

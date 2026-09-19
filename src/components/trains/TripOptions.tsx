@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 
 import { api } from "~/utils/api";
 
-const TripOptions: React.FC = () => {
+const TripOptions = () => {
   const router = useRouter();
   const depStopId =
     typeof router.query.depStopId === "string" ? router.query.depStopId : "";
@@ -32,6 +32,9 @@ const TripOptions: React.FC = () => {
     {
       enabled: Boolean(depStopId && arrivStopId && startDate),
       retry: 1,
+      // Timetable for a given date; prices are derived from it, not from
+      // availability, so this does not need refetching on focus.
+      staleTime: Infinity,
     },
   );
 

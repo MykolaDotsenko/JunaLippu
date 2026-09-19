@@ -4,9 +4,12 @@ import { type RouterOutputs } from "~/utils/api";
 
 type Reservation = RouterOutputs["booking"]["getReservation"];
 
-const Field: React.FC<{ label: string; children: React.ReactNode }> = ({
+const Field = ({
   label,
   children,
+}: {
+  label: string;
+  children: React.ReactNode;
 }) => (
   <div>
     <span className="block text-xs uppercase tracking-wide text-slate-400">
@@ -16,9 +19,7 @@ const Field: React.FC<{ label: string; children: React.ReactNode }> = ({
   </div>
 );
 
-const ReservationSummary: React.FC<{ reservation: Reservation }> = ({
-  reservation,
-}) => (
+const ReservationSummary = ({ reservation }: { reservation: Reservation }) => (
   <div className="rounded-2xl bg-slate-50 p-5 text-left">
     <div className="text-lg font-bold">
       {reservation.departure_stop_name} → {reservation.arrival_stop_name}

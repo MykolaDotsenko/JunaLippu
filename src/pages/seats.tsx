@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 
@@ -6,68 +6,67 @@ import BookingProgress from "~/components/BookingProgress";
 import LoadingPanel from "~/components/LoadingPanel";
 import MissingDetails from "~/components/MissingDetails";
 import PageLayout from "~/components/PageLayout";
+import { useRadioGroup } from "~/hooks/useRadioGroup";
 import { api, type RouterOutputs } from "~/utils/api";
 
 type AvailableSeat = RouterOutputs["booking"]["getSeat"][number];
 
-const SeatsPage: React.FC = () => {
+const asString = (value: string | string[] | undefined) =>
+  typeof value === "string" ? value : "";
+
+const SeatsPage = () => {
   const router = useRouter();
 
-  const tripId =
-    typeof router.query.tripId === "string" ? router.query.tripId : "";
-  const depStopId =
-    typeof router.query.depStopId === "string" ? router.query.depStopId : "";
-  const arrivStopId =
-    typeof router.query.arrivStopId === "string"
-      ? router.query.arrivStopId
-      : "";
-  const date = typeof router.query.date === "string" ? router.query.date : "";
-  const initialTravelClass = router.query.travelClass === "1" ? 1 : 2;
-
-  const [travelClass, setTravelClass] = useState<1 | 2>(initialTravelClass);
-  const [selectedSeatId, setSelectedSeatId] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (router.query.travelClass === "1") setTravelClass(1);
-    if (router.query.travelClass === "2") setTravelClass(2);
-  }, [router.query.travelClass]);
+  const tripId = asString(router.query.tripId);
+  const depStopId = asString(router.query.depStopId);
+  const arrivStopId = asString(router.query.arrivStopId);
+  const date = asString(router.query.date);
+  const travelClass: 1 | 2 = router.query.travelClass === "1" ? 1 : 2;
+  const selectedSeatId = Number(asString(router.query.seatId)) || null;
 
   const hasSegment = Boolean(tripId && depStopId && arrivStopId);
 
-  const journey = api.booking.getJourneyDetails.useQuery(
-    { trip_id: tripId, dep_stop_id: depStopId, arriv_stop_id: arrivStopId },
-    { enabled: hasSegment, retry: false },
+  // The URL is the single source of truth for the choices on this page, so a
+  // seat selection survives a refresh and can be shared.
+  const replaceQuery = (next: Record<string, string | undefined>) => {
+    const merged: Record<string, string> = {};
+    for (const [key, value] of Object.entries({ ...router.query, ...next })) {
+      if (typeof value === "string" && value !== "") merged[key] = value;
+    }
+    void router.replace({ pathname: "/seats", query: merged }, undefined, {
+      shallow: true,
+    });
+  };
+
+  const selectTravelClass = (next: 1 | 2) =>
+    replaceQuery({ travelClass: String(next), seatId: undefined });
+
+  const selectSeat = (seatId: number) =>
+    replaceQuery({ seatId: String(seatId) });
+
+  const segment = {
+    trip_id: tripId,
+    dep_stop_id: depStopId,
+    arriv_stop_id: arrivStopId,
+  };
+
+  // The fare depends on the journey and the class, never on which seat is
+  // picked, so it is fetched once per class instead of on every seat click.
+  const quote = api.booking.getQuote.useQuery(
+    { ...segment, travel_class: travelClass },
+    { enabled: hasSegment, retry: false, staleTime: Infinity },
   );
 
+  // Availability is the opposite: it must never be served from a stale cache.
   const seats = api.booking.getSeat.useQuery(
-    {
-      travel_class: travelClass,
-      trip_id: tripId,
-      dep_stop_id: depStopId,
-      arriv_stop_id: arrivStopId,
-    },
-    { enabled: hasSegment, retry: 1 },
+    { ...segment, travel_class: travelClass },
+    { enabled: hasSegment, retry: 1, staleTime: 0 },
   );
 
   const availableSeats = useMemo(() => seats.data ?? [], [seats.data]);
 
-  const selectedSeat = useMemo(
-    () => availableSeats.find((seat) => seat.seat_id === selectedSeatId),
-    [availableSeats, selectedSeatId],
-  );
-
-  const review = api.booking.getReview.useQuery(
-    {
-      seat_id: selectedSeatId ?? 0,
-      trip_id: tripId,
-      dep_stop_id: depStopId,
-      arriv_stop_id: arrivStopId,
-      travel_class: travelClass,
-    },
-    {
-      enabled: Boolean(selectedSeatId) && hasSegment,
-      retry: false,
-    },
+  const selectedSeat = availableSeats.find(
+    (seat) => seat.seat_id === selectedSeatId,
   );
 
   const groupedSeats = useMemo(() => {
@@ -80,8 +79,14 @@ const SeatsPage: React.FC = () => {
     return Array.from(groups.entries()).sort(([a], [b]) => a - b);
   }, [availableSeats]);
 
+  const classRadios = useRadioGroup<1 | 2>({
+    values: [2, 1],
+    value: travelClass,
+    onChange: selectTravelClass,
+  });
+
   const handleContinue = () => {
-    if (!selectedSeat || !review.data) return;
+    if (!selectedSeat || !quote.data) return;
 
     void router.push({
       pathname: "/review",
@@ -89,12 +94,18 @@ const SeatsPage: React.FC = () => {
         tripId,
         depStopId,
         arrivStopId,
-        seatId: selectedSeat.seat_id.toString(),
-        travelClass: travelClass.toString(),
-        date: journey.data?.service_date ?? date,
+        seatId: String(selectedSeat.seat_id),
+        travelClass: String(travelClass),
+        date: quote.data.service_date,
       },
     });
   };
+
+  const seatRadios = useRadioGroup<number>({
+    values: availableSeats.map((seat) => seat.seat_id),
+    value: selectedSeat ? selectedSeat.seat_id : null,
+    onChange: selectSeat,
+  });
 
   if (!router.isReady) {
     return (
@@ -123,9 +134,9 @@ const SeatsPage: React.FC = () => {
                 query: {
                   depStopId,
                   arrivStopId,
-                  departureCity: journey.data?.departure_stop_name ?? "",
-                  arrivalCity: journey.data?.arrival_stop_name ?? "",
-                  startDate: journey.data?.service_date ?? date,
+                  departureCity: quote.data?.departure_stop_name ?? "",
+                  arrivalCity: quote.data?.arrival_stop_name ?? "",
+                  startDate: quote.data?.service_date ?? date,
                 },
               }}
               className="text-sm font-semibold text-blue-700 hover:underline"
@@ -136,16 +147,16 @@ const SeatsPage: React.FC = () => {
               Choose class and seat
             </h1>
             <p className="mt-2 text-slate-500">
-              {journey.data
-                ? journey.data.departure_stop_name +
+              {quote.data
+                ? quote.data.departure_stop_name +
                   " → " +
-                  journey.data.arrival_stop_name +
+                  quote.data.arrival_stop_name +
                   " · " +
-                  journey.data.departure_time +
+                  quote.data.departure_time +
                   "–" +
-                  journey.data.arrival_time +
+                  quote.data.arrival_time +
                   " · " +
-                  journey.data.duration
+                  quote.data.duration
                 : "Loading journey details…"}
             </p>
           </div>
@@ -154,46 +165,31 @@ const SeatsPage: React.FC = () => {
             <h2 id="class-title" className="text-lg font-bold">
               Travel class
             </h2>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                aria-pressed={travelClass === 2}
-                onClick={() => {
-                  setTravelClass(2);
-                  setSelectedSeatId(null);
-                }}
-                className={
-                  "min-h-20 rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 " +
-                  (travelClass === 2
-                    ? "border-blue-600 bg-blue-50 ring-1 ring-blue-600"
-                    : "border-slate-200 bg-white hover:border-slate-300")
-                }
-              >
-                <div className="font-bold">2nd class</div>
-                <div className="mt-1 text-sm text-slate-500">
-                  Standard seating
-                </div>
-              </button>
-
-              <button
-                type="button"
-                aria-pressed={travelClass === 1}
-                onClick={() => {
-                  setTravelClass(1);
-                  setSelectedSeatId(null);
-                }}
-                className={
-                  "min-h-20 rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 " +
-                  (travelClass === 1
-                    ? "border-blue-600 bg-blue-50 ring-1 ring-blue-600"
-                    : "border-slate-200 bg-white hover:border-slate-300")
-                }
-              >
-                <div className="font-bold">1st class</div>
-                <div className="mt-1 text-sm text-slate-500">
-                  Premium class · +50%
-                </div>
-              </button>
+            <div
+              role="radiogroup"
+              aria-labelledby="class-title"
+              className="mt-3 grid gap-3 sm:grid-cols-2"
+            >
+              {([2, 1] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  {...classRadios.getRadioProps(option)}
+                  className={
+                    "min-h-20 rounded-2xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 " +
+                    (travelClass === option
+                      ? "border-blue-600 bg-blue-50 ring-1 ring-blue-600"
+                      : "border-slate-200 bg-white hover:border-slate-300")
+                  }
+                >
+                  <div className="font-bold">
+                    {option === 1 ? "1st class" : "2nd class"}
+                  </div>
+                  <div className="mt-1 text-sm text-slate-500">
+                    {option === 1 ? "Premium class · +50%" : "Standard seating"}
+                  </div>
+                </button>
+              ))}
             </div>
           </section>
 
@@ -255,7 +251,20 @@ const SeatsPage: React.FC = () => {
                 </div>
               )}
 
-            <div className="mt-5 space-y-5">
+            {selectedSeatId !== null && !selectedSeat && !seats.isLoading && (
+              <p
+                role="status"
+                className="mt-4 text-sm font-medium text-amber-700"
+              >
+                That seat is no longer available. Choose another one.
+              </p>
+            )}
+
+            <div
+              role="radiogroup"
+              aria-labelledby="seat-title"
+              className="mt-5 space-y-5"
+            >
               {groupedSeats.map(([carNumber, carSeats]) => (
                 <div
                   key={carNumber}
@@ -269,13 +278,13 @@ const SeatsPage: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
                     {carSeats.map((seat) => {
-                      const selected = seat.seat_id === selectedSeatId;
+                      const selected = seat.seat_id === selectedSeat?.seat_id;
                       return (
                         <button
                           key={seat.seat_id}
                           type="button"
-                          aria-pressed={selected}
-                          onClick={() => setSelectedSeatId(seat.seat_id)}
+                          aria-label={`Car ${carNumber}, seat ${seat.seat_number}`}
+                          {...seatRadios.getRadioProps(seat.seat_id)}
                           className={
                             "min-h-12 rounded-xl border text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 " +
                             (selected
@@ -295,19 +304,17 @@ const SeatsPage: React.FC = () => {
 
           <div className="sticky bottom-4 mt-8 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur sm:flex sm:items-center sm:justify-between">
             <div>
-              <div className="text-sm text-slate-500">Total</div>
+              <div className="text-sm text-slate-500">
+                {selectedSeat ? "Total" : "From"}
+              </div>
               <div className="text-2xl font-bold">
-                {review.isFetching
-                  ? "Calculating…"
-                  : review.data
-                    ? "€" + review.data.price.toFixed(2)
-                    : "Select a seat"}
+                {quote.data ? "€" + quote.data.price.toFixed(2) : "…"}
               </div>
             </div>
             <button
               type="button"
               onClick={handleContinue}
-              disabled={!selectedSeat || !review.data}
+              disabled={!selectedSeat || !quote.data}
               className="mt-4 min-h-12 w-full rounded-xl bg-blue-600 px-6 font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 sm:mt-0 sm:w-auto"
             >
               Review booking

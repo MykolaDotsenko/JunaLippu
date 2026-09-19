@@ -6,7 +6,7 @@ import BookingProgress from "~/components/BookingProgress";
 import PageLayout from "~/components/PageLayout";
 import TripOptions from "~/components/trains/TripOptions";
 
-const TrainsPage: React.FC = () => {
+const TrainsPage = () => {
   const router = useRouter();
   const departureCity =
     typeof router.query.departureCity === "string"

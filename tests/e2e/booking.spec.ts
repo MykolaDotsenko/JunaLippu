@@ -20,7 +20,8 @@ test("mobile booking flow reaches server-verified review", async ({ page }) => {
     page.getByText("Alpha → Gamma · 07:25:00–09:26:00"),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "Seat 7" }).click();
+  await page.getByRole("radio", { name: "Car 1, seat 7" }).click();
+  await expect(page).toHaveURL(/seatId=901/);
   await expect(page.getByText(/€\d+\.\d{2}/)).toBeVisible();
 
   await page.getByRole("button", { name: "Review booking" }).click();
@@ -139,4 +140,70 @@ test("a valid deep link never serves the missing-details state", async ({
 
   expect(html).not.toContain("Journey details are missing.");
   expect(html).toContain('aria-label="Loading"');
+});
+
+test("the seat page keeps its choices in the URL", async ({ page }) => {
+  await page.goto(TRAINS_URL);
+  await page.getByRole("link", { name: "Select" }).click();
+
+  const secondClass = page.getByRole("radio", { name: "2nd class" });
+  const firstClass = page.getByRole("radio", { name: "1st class" });
+  await expect(secondClass).toHaveAttribute("aria-checked", "true");
+
+  await page.getByRole("radio", { name: "Car 1, seat 7" }).click();
+  await expect(page).toHaveURL(/seatId=901/);
+
+  // A reload must restore the same selection from the URL alone.
+  await page.reload();
+  await expect(
+    page.getByRole("radio", { name: "Car 1, seat 7" }),
+  ).toHaveAttribute("aria-checked", "true");
+
+  // Switching class clears the seat, because it belongs to the old class.
+  await firstClass.click();
+  await expect(page).toHaveURL(/travelClass=1/);
+  await expect(page).not.toHaveURL(/seatId=/);
+  await expect(firstClass).toHaveAttribute("aria-checked", "true");
+});
+
+test("seats are reachable with arrow keys, not only Tab", async ({ page }) => {
+  await page.goto(
+    "/seats?tripId=e2e-trip&depStopId=E2EA&arrivStopId=E2EC&travelClass=2",
+  );
+
+  const seat = page.getByRole("radio", { name: "Car 1, seat 7" });
+  await expect(seat).toBeVisible();
+
+  // Arrow keys move to the next seat and select it, per the APG radio group
+  // pattern; Tab alone would have to walk every seat in the train.
+  await seat.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page).toHaveURL(/seatId=902/);
+  await expect(
+    page.getByRole("radio", { name: "Car 1, seat 8" }),
+  ).toHaveAttribute("aria-checked", "true");
+
+  await page.keyboard.press("ArrowLeft");
+  await expect(page).toHaveURL(/seatId=901/);
+});
+
+test("the search form keeps the query in the URL", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByLabel("From").selectOption("E2EA");
+  await expect(page).toHaveURL(/from=E2EA/);
+  await page.getByLabel("To").selectOption("E2EC");
+  await expect(page).toHaveURL(/to=E2EC/);
+
+  await page.getByLabel("Service date").selectOption("2024-05-06");
+  await expect(page).toHaveURL(/date=2024-05-06/);
+
+  // The whole search survives a reload, which local state would not.
+  await page.reload();
+  await expect(page.getByLabel("From")).toHaveValue("E2EA");
+  await expect(page.getByLabel("To")).toHaveValue("E2EC");
+  await expect(page.getByLabel("Service date")).toHaveValue("2024-05-06");
+  await expect(
+    page.getByRole("button", { name: "Search trains" }),
+  ).toBeEnabled();
 });

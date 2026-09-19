@@ -6,7 +6,7 @@ const routes = [
   { from: "HKI", to: "OL", label: "Helsinki → Oulu" },
 ];
 
-const PopularRoutes: React.FC = () => (
+const PopularRoutes = () => (
   <section className="py-12 sm:py-16" aria-labelledby="popular-routes-title">
     <div className="mb-6">
       <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-600">

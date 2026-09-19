@@ -107,6 +107,66 @@ void test("booking procedures enforce segment availability end to end", async ()
   assert.equal(secondLegReview.arrival_stop_name, "Gamma");
 });
 
+void test("getQuote prices a journey without naming a seat", async () => {
+  const { user } = await seed();
+  const caller = callerFor(user.id);
+
+  const segment = {
+    trip_id: "trip",
+    dep_stop_id: "A",
+    arriv_stop_id: "B",
+  };
+
+  const second = await caller.booking.getQuote({
+    ...segment,
+    travel_class: 2 as const,
+  });
+  assert.equal(second.departure_stop_name, "Alpha");
+  assert.equal(second.arrival_stop_name, "Beta");
+  assert.equal(second.service_date, "2024-05-06");
+  assert.equal(second.travel_class, 2);
+  assert.ok(second.price > 0);
+
+  const first = await caller.booking.getQuote({
+    ...segment,
+    travel_class: 1 as const,
+  });
+  assert.ok(first.price > second.price);
+
+  // The quote must not change once a seat in that class is taken, because the
+  // fare does not depend on which seat is picked.
+  await caller.booking.createReservation(firstLeg);
+  const afterBooking = await caller.booking.getQuote({
+    ...segment,
+    travel_class: 2 as const,
+  });
+  assert.equal(afterBooking.price, second.price);
+});
+
+void test("getQuote rejects the same invalid segments as the rest of the API", async () => {
+  await seed();
+  const caller = callerFor(null);
+
+  await assert.rejects(
+    caller.booking.getQuote({
+      trip_id: "trip",
+      dep_stop_id: "C",
+      arriv_stop_id: "A",
+      travel_class: 2 as const,
+    }),
+    isTRPCErrorWithCode("BAD_REQUEST"),
+  );
+  await assert.rejects(
+    caller.booking.getQuote({
+      trip_id: "nope",
+      dep_stop_id: "A",
+      arriv_stop_id: "B",
+      travel_class: 2 as const,
+    }),
+    isTRPCErrorWithCode("NOT_FOUND"),
+  );
+});
+
 void test("a reserved seat disappears from the seat map for overlapping legs", async () => {
   const { user } = await seed();
   const caller = callerFor(user.id);

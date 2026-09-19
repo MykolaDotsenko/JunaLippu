@@ -9,7 +9,7 @@ import MissingDetails from "~/components/MissingDetails";
 import PageLayout from "~/components/PageLayout";
 import { api } from "~/utils/api";
 
-const ReviewPage: React.FC = () => {
+const ReviewPage = () => {
   const router = useRouter();
   const { data: session, status } = useSession();
 

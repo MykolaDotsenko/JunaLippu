@@ -7,11 +7,11 @@ type MissingDetailsProps = {
   linkLabel?: string;
 };
 
-const MissingDetails: React.FC<MissingDetailsProps> = ({
+const MissingDetails = ({
   title,
   description,
   linkLabel = "Back to search",
-}) => (
+}: MissingDetailsProps) => (
   <div
     role="alert"
     className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900"

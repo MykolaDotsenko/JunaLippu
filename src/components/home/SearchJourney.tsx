@@ -1,33 +1,47 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/router";
 
 import { api } from "~/utils/api";
 import { formatServiceDate } from "~/utils/serviceDate";
 
-const SearchJourney: React.FC = () => {
+const asString = (value: string | string[] | undefined) =>
+  typeof value === "string" ? value : "";
+
+const SearchJourney = () => {
   const router = useRouter();
   const stationsQuery = api.search.getStationName.useQuery(undefined, {
     retry: 1,
+    // The station list is fixed for the lifetime of the app.
+    staleTime: Infinity,
   });
   const stations = useMemo(
     () => stationsQuery.data ?? [],
     [stationsQuery.data],
   );
 
-  const [from, setFrom] = useState(
-    typeof router.query.from === "string" ? router.query.from : "",
-  );
-  const [to, setTo] = useState(
-    typeof router.query.to === "string" ? router.query.to : "",
-  );
-  const [date, setDate] = useState("");
+  // The search lives in the URL rather than in component state, so a search
+  // can be shared, bookmarked and restored by the back button — and no effect
+  // is needed to keep the two in sync.
+  const from = asString(router.query.from);
+  const to = asString(router.query.to);
+  const date = asString(router.query.date);
 
-  useEffect(() => {
-    setFrom(typeof router.query.from === "string" ? router.query.from : "");
-    setTo(typeof router.query.to === "string" ? router.query.to : "");
-    setDate("");
-  }, [router.query.from, router.query.to]);
+  const replaceQuery = (next: Record<string, string | undefined>) => {
+    const merged: Record<string, string> = {};
+    for (const [key, value] of Object.entries({ ...router.query, ...next })) {
+      if (typeof value === "string" && value !== "") merged[key] = value;
+    }
+    void router.replace({ pathname: "/", query: merged }, undefined, {
+      shallow: true,
+    });
+  };
+
+  const selectFrom = (value: string) =>
+    replaceQuery({ from: value, date: undefined });
+  const selectTo = (value: string) =>
+    replaceQuery({ to: value, date: undefined });
+  const selectDate = (value: string) => replaceQuery({ date: value });
 
   const invalidRoute = Boolean(from && to && from === to);
 
@@ -39,6 +53,8 @@ const SearchJourney: React.FC = () => {
     {
       enabled: Boolean(from && to) && !invalidRoute,
       retry: 1,
+      // Service dates come from a fixed historical dataset.
+      staleTime: Infinity,
     },
   );
 
@@ -46,6 +62,9 @@ const SearchJourney: React.FC = () => {
     () => availableDatesQuery.data ?? [],
     [availableDatesQuery.data],
   );
+
+  // A shared link can name a date the route no longer runs on.
+  const selectedDate = availableDates.includes(date) ? date : "";
 
   const demoDateRange = useMemo(() => {
     const first = availableDates.at(0);
@@ -71,13 +90,10 @@ const SearchJourney: React.FC = () => {
           ? "No dates available"
           : "Choose service date";
 
-  const canSearch = Boolean(from && to && date && !invalidRoute);
+  const canSearch = Boolean(from && to && selectedDate && !invalidRoute);
 
-  const swapStations = () => {
-    setFrom(to);
-    setTo(from);
-    setDate("");
-  };
+  const swapStations = () =>
+    replaceQuery({ from: to, to: from, date: undefined });
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -90,7 +106,7 @@ const SearchJourney: React.FC = () => {
         arrivStopId: to,
         departureCity: stationNameById.get(from) ?? from,
         arrivalCity: stationNameById.get(to) ?? to,
-        startDate: date,
+        startDate: selectedDate,
       },
     });
   };
@@ -168,10 +184,7 @@ const SearchJourney: React.FC = () => {
               </span>
               <select
                 value={from}
-                onChange={(event) => {
-                  setFrom(event.target.value);
-                  setDate("");
-                }}
+                onChange={(event) => selectFrom(event.target.value)}
                 disabled={stationsQuery.isLoading}
                 className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
               >
@@ -200,10 +213,7 @@ const SearchJourney: React.FC = () => {
               </span>
               <select
                 value={to}
-                onChange={(event) => {
-                  setTo(event.target.value);
-                  setDate("");
-                }}
+                onChange={(event) => selectTo(event.target.value)}
                 disabled={stationsQuery.isLoading}
                 className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
               >
@@ -222,8 +232,8 @@ const SearchJourney: React.FC = () => {
               Service date
             </span>
             <select
-              value={date}
-              onChange={(event) => setDate(event.target.value)}
+              value={selectedDate}
+              onChange={(event) => selectDate(event.target.value)}
               disabled={availableDates.length === 0}
               className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100 disabled:text-slate-400"
             >

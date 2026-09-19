@@ -71,6 +71,39 @@ Two rules carry the product:
 
 A change that touches either needs a test that would fail without it.
 
+## Frontend conventions
+
+**The URL owns anything a user could share, bookmark or restore.** Route,
+service date, travel class and seat all live in the query string; components
+read them from `router.query` and write them back with `router.replace(...,
+{ shallow: true })`. Do not mirror them into `useState` and re-sync with an
+effect — see React's ["You Might Not Need an
+Effect"](https://react.dev/learn/you-might-not-need-an-effect).
+
+**Cache lifetime is a decision, not a default.** Seat availability is fetched
+with `staleTime: 0` because a stale seat map sells a taken seat. The station
+list, service dates, timetables and fares come from a fixed dataset and use
+`staleTime: Infinity`. A query with neither is a query nobody has thought
+about.
+
+**A fare is not a seat.** `booking.getQuote` prices a journey for a class;
+`booking.getReview` validates a specific seat before the commit. Keeping them
+apart is what stops every seat click costing a round trip.
+
+**Mutually exclusive choices are radio groups.** Travel class and seat
+selection use `role="radiogroup"` with `useRadioGroup`, which implements the
+roving tabindex and arrow-key behaviour from the [WAI-ARIA Authoring
+Practices](https://www.w3.org/WAI/ARIA/apg/patterns/radio/). `aria-pressed`
+describes an independent toggle and is wrong for a one-of-many choice.
+
+**Layout.** `src/components/` holds shared components, `src/components/<route>/`
+route-scoped ones, `src/hooks/` reusable hooks, and `src/utils/` framework-free
+helpers. Components are plain functions with typed props, not `React.FC`.
+
+**Client bundles.** Importing `~/env` into a component pulls zod into every
+client bundle. Read `NEXT_PUBLIC_*` values from `process.env` in client code;
+Next.js inlines them at build time.
+
 ## Commits
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org):

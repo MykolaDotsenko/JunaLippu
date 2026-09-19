@@ -48,6 +48,9 @@ await db.car.create({ data: { car_id: 901 } });
 await db.seat.create({
   data: { seat_id: 901, seat_number: 7, car_id: 901, travel_class: 2 },
 });
+await db.seat.create({
+  data: { seat_id: 902, seat_number: 8, car_id: 901, travel_class: 2 },
+});
 await db.train_composition.create({
   data: { train_id: 901, car_id: 901, car_number: 1 },
 });

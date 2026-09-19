@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import PageLayout from "~/components/PageLayout";
 
-const ServerErrorPage: React.FC = () => (
+const ServerErrorPage = () => (
   <PageLayout title="Something went wrong · JunaLippu" width="sm">
     <div
       role="alert"

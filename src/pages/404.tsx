@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import PageLayout from "~/components/PageLayout";
 
-const NotFoundPage: React.FC = () => (
+const NotFoundPage = () => (
   <PageLayout title="Page not found · JunaLippu" width="sm">
     <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
       <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-400">

@@ -1,8 +1,6 @@
 import React from "react";
 
-const LoadingPanel: React.FC<{ className?: string }> = ({
-  className = "h-72",
-}) => (
+const LoadingPanel = ({ className = "h-72" }: { className?: string }) => (
   <div
     role="status"
     aria-label="Loading"

@@ -1,5 +1,6 @@
 import React from "react";
 import Head from "next/head";
+import { useRouter } from "next/router";
 
 import Footer from "~/components/Footer";
 import Header from "~/components/Header";
@@ -19,28 +20,56 @@ type PageLayoutProps = {
   children: React.ReactNode;
 };
 
-const PageLayout: React.FC<PageLayoutProps> = ({
+const PageLayout = ({
   title,
   description,
   width = "full",
   children,
-}) => (
-  <>
-    <Head>
-      <title>{title}</title>
-      {description && <meta name="description" content={description} />}
-    </Head>
-    <div className="min-h-screen bg-slate-50 text-slate-950">
-      <Header />
-      <main
-        id="main-content"
-        className={`mx-auto ${widths[width]} px-4 py-8 sm:px-6 sm:py-12`}
-      >
-        {children}
-      </main>
-      <Footer />
-    </div>
-  </>
-);
+}: PageLayoutProps) => {
+  const router = useRouter();
+  // Read through process.env rather than the validated `env` helper: that
+  // helper pulls zod into every client bundle, and Next.js inlines
+  // NEXT_PUBLIC_* at build time anyway. The value is still declared and
+  // validated in src/env.js for the server build.
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+
+  // Query parameters carry booking state, not distinct content, so every
+  // variant of a route points at the same canonical page.
+  const canonical = siteUrl
+    ? new URL(router.asPath.split("?")[0] ?? "/", siteUrl).toString()
+    : null;
+
+  return (
+    <>
+      <Head>
+        <title>{title}</title>
+        {description && <meta name="description" content={description} />}
+        {canonical && <link rel="canonical" href={canonical} />}
+        <meta property="og:site_name" content="JunaLippu" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={title} />
+        {description && (
+          <meta property="og:description" content={description} />
+        )}
+        {canonical && <meta property="og:url" content={canonical} />}
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={title} />
+        {description && (
+          <meta name="twitter:description" content={description} />
+        )}
+      </Head>
+      <div className="min-h-screen bg-slate-50 text-slate-950">
+        <Header />
+        <main
+          id="main-content"
+          className={`mx-auto ${widths[width]} px-4 py-8 sm:px-6 sm:py-12`}
+        >
+          {children}
+        </main>
+        <Footer />
+      </div>
+    </>
+  );
+};
 
 export default PageLayout;

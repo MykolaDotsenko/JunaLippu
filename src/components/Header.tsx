@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 
-const Header: React.FC = () => {
+const Header = () => {
   const { data: session, status } = useSession();
   const [aboutOpen, setAboutOpen] = useState(false);
 

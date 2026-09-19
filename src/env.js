@@ -21,7 +21,10 @@ export const env = createEnv({
     GOOGLE_CLIENT_ID: requiredInProduction("GOOGLE_CLIENT_ID"),
     GOOGLE_CLIENT_SECRET: requiredInProduction("GOOGLE_CLIENT_SECRET"),
   },
-  client: {},
+  client: {
+    // Optional: when set, pages emit an absolute canonical and og:url.
+    NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
+  },
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
@@ -29,6 +32,7 @@ export const env = createEnv({
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,

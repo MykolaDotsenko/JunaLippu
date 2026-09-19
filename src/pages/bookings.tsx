@@ -6,7 +6,7 @@ import PageLayout from "~/components/PageLayout";
 import ReservationSummary from "~/components/ReservationSummary";
 import { api } from "~/utils/api";
 
-const BookingsPage: React.FC = () => {
+const BookingsPage = () => {
   const { status } = useSession();
   const isAuthenticated = status === "authenticated";
 
