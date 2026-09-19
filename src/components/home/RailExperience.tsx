@@ -1,10 +1,7 @@
 import Image from "next/image";
 
 const RailExperience = () => (
-  <section
-    className="pb-12 sm:pb-16"
-    aria-labelledby="rail-experience-title"
-  >
+  <section className="pb-12 sm:pb-16" aria-labelledby="rail-experience-title">
     <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
       <article className="group relative min-h-[360px] overflow-hidden rounded-3xl bg-slate-950 shadow-lg sm:min-h-[420px]">
         <Image
@@ -29,9 +26,8 @@ const RailExperience = () => (
             Experience Finland by train.
           </h2>
           <p className="mt-3 max-w-xl text-sm leading-6 text-slate-200 sm:text-base">
-            Historical Finnish timetable data powers a focused booking flow
-            with modern validation, accessible interactions and server-owned
-            pricing.
+            Historical Finnish timetable data powers a focused booking flow with
+            modern validation, accessible interactions and server-owned pricing.
           </p>
         </div>
       </article>
@@ -60,8 +56,12 @@ const RailExperience = () => (
           </h3>
           <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
             <li>Exact GTFS seconds, including times after 24:00.</li>
-            <li>Segment-aware seat inventory instead of a simple booked flag.</li>
-            <li>Database-backed protection against concurrent double booking.</li>
+            <li>
+              Segment-aware seat inventory instead of a simple booked flag.
+            </li>
+            <li>
+              Database-backed protection against concurrent double booking.
+            </li>
           </ul>
         </div>
       </article>
