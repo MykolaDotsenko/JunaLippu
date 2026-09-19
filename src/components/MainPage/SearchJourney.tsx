@@ -28,15 +28,10 @@ const SearchJourney: React.FC = () => {
   const [date, setDate] = useState<Date | null>(null);
 
   useEffect(() => {
-    const nextFrom = typeof router.query.from === "string" ? router.query.from : "";
-    const nextTo = typeof router.query.to === "string" ? router.query.to : "";
-
-    if (nextFrom !== from || nextTo !== to) {
-      setFrom(nextFrom);
-      setTo(nextTo);
-      setDate(null);
-    }
-  }, [router.query.from, router.query.to, from, to]);
+    setFrom(typeof router.query.from === "string" ? router.query.from : "");
+    setTo(typeof router.query.to === "string" ? router.query.to : "");
+    setDate(null);
+  }, [router.query.from, router.query.to]);
 
   const availableDatesQuery = api.search.getAvailableDates.useQuery(
     {
