@@ -9,11 +9,17 @@ const TripOptions: React.FC = () => {
   const depStopId =
     typeof router.query.depStopId === "string" ? router.query.depStopId : "";
   const arrivStopId =
-    typeof router.query.arrivStopId === "string" ? router.query.arrivStopId : "";
+    typeof router.query.arrivStopId === "string"
+      ? router.query.arrivStopId
+      : "";
   const departureCity =
-    typeof router.query.departureCity === "string" ? router.query.departureCity : "";
+    typeof router.query.departureCity === "string"
+      ? router.query.departureCity
+      : "";
   const arrivalCity =
-    typeof router.query.arrivalCity === "string" ? router.query.arrivalCity : "";
+    typeof router.query.arrivalCity === "string"
+      ? router.query.arrivalCity
+      : "";
   const startDate =
     typeof router.query.startDate === "string" ? router.query.startDate : "";
 
@@ -33,7 +39,10 @@ const TripOptions: React.FC = () => {
     return (
       <div aria-live="polite" className="space-y-3">
         {[1, 2, 3].map((item) => (
-          <div key={item} className="h-28 animate-pulse rounded-2xl bg-slate-100" />
+          <div
+            key={item}
+            className="h-28 animate-pulse rounded-2xl bg-slate-100"
+          />
         ))}
       </div>
     );
@@ -41,9 +50,16 @@ const TripOptions: React.FC = () => {
 
   if (schedule.error) {
     return (
-      <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5">
-        <h2 className="font-semibold text-red-900">We could not load journeys.</h2>
-        <p className="mt-1 text-sm text-red-700">Check your connection and try again.</p>
+      <div
+        role="alert"
+        className="rounded-2xl border border-red-200 bg-red-50 p-5"
+      >
+        <h2 className="font-semibold text-red-900">
+          We could not load journeys.
+        </h2>
+        <p className="mt-1 text-sm text-red-700">
+          Check your connection and try again.
+        </p>
         <button
           type="button"
           onClick={() => void schedule.refetch()}
@@ -100,11 +116,13 @@ const TripOptions: React.FC = () => {
             <div className="flex items-center justify-between gap-5 sm:justify-end">
               <div className="text-right">
                 <div className="text-xs text-slate-500">from</div>
-                <div className="text-xl font-bold text-slate-950">€{trip.min_price.toFixed(2)}</div>
+                <div className="text-xl font-bold text-slate-950">
+                  €{trip.min_price.toFixed(2)}
+                </div>
               </div>
               <Link
                 href={{
-                  pathname: "/Journey",
+                  pathname: "/seats",
                   query: {
                     tripId: trip.trip_id,
                     depStopId,

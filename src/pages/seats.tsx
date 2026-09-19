@@ -1,22 +1,26 @@
 import React, { useEffect, useMemo, useState } from "react";
-import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 
 import BookingProgress from "~/components/BookingProgress";
-import Footer from "~/components/Footer";
-import Header from "~/components/Header";
-import { api } from "~/utils/api";
+import PageLayout from "~/components/PageLayout";
+import { api, type RouterOutputs } from "~/utils/api";
 
-const Journey: React.FC = () => {
+type AvailableSeat = RouterOutputs["booking"]["getSeat"][number];
+
+const SeatsPage: React.FC = () => {
   const router = useRouter();
 
-  const tripId = typeof router.query.tripId === "string" ? router.query.tripId : "";
-  const depStopId = typeof router.query.depStopId === "string" ? router.query.depStopId : "";
-  const arrivStopId = typeof router.query.arrivStopId === "string" ? router.query.arrivStopId : "";
+  const tripId =
+    typeof router.query.tripId === "string" ? router.query.tripId : "";
+  const depStopId =
+    typeof router.query.depStopId === "string" ? router.query.depStopId : "";
+  const arrivStopId =
+    typeof router.query.arrivStopId === "string"
+      ? router.query.arrivStopId
+      : "";
   const date = typeof router.query.date === "string" ? router.query.date : "";
-  const initialTravelClass =
-    router.query.travelClass === "1" ? 1 : 2;
+  const initialTravelClass = router.query.travelClass === "1" ? 1 : 2;
 
   const [travelClass, setTravelClass] = useState<1 | 2>(initialTravelClass);
   const [selectedSeatId, setSelectedSeatId] = useState<number | null>(null);
@@ -26,9 +30,11 @@ const Journey: React.FC = () => {
     if (router.query.travelClass === "2") setTravelClass(2);
   }, [router.query.travelClass]);
 
+  const hasSegment = Boolean(tripId && depStopId && arrivStopId);
+
   const journey = api.booking.getJourneyDetails.useQuery(
     { trip_id: tripId, dep_stop_id: depStopId, arriv_stop_id: arrivStopId },
-    { enabled: Boolean(tripId && depStopId && arrivStopId), retry: false },
+    { enabled: hasSegment, retry: false },
   );
 
   const seats = api.booking.getSeat.useQuery(
@@ -38,7 +44,7 @@ const Journey: React.FC = () => {
       dep_stop_id: depStopId,
       arriv_stop_id: arrivStopId,
     },
-    { enabled: Boolean(tripId && depStopId && arrivStopId), retry: 1 },
+    { enabled: hasSegment, retry: 1 },
   );
 
   const availableSeats = useMemo(() => seats.data ?? [], [seats.data]);
@@ -57,13 +63,13 @@ const Journey: React.FC = () => {
       travel_class: travelClass,
     },
     {
-      enabled: Boolean(selectedSeatId && tripId && depStopId && arrivStopId),
+      enabled: Boolean(selectedSeatId) && hasSegment,
       retry: false,
     },
   );
 
   const groupedSeats = useMemo(() => {
-    const groups = new Map<number, NonNullable<typeof seats.data>>();
+    const groups = new Map<number, AvailableSeat[]>();
     for (const seat of availableSeats) {
       const group = groups.get(seat.car_number) ?? [];
       group.push(seat);
@@ -76,7 +82,7 @@ const Journey: React.FC = () => {
     if (!selectedSeat || !review.data) return;
 
     void router.push({
-      pathname: "/ReviewBooking",
+      pathname: "/review",
       query: {
         tripId,
         depStopId,
@@ -89,29 +95,31 @@ const Journey: React.FC = () => {
   };
 
   return (
-    <>
-      <Head>
-        <title>Choose a seat · JunaLippu</title>
-      </Head>
-      <div className="min-h-screen bg-slate-50 text-slate-950">
-        <Header />
-        <main id="main-content" className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-          <BookingProgress current={3} />
+    <PageLayout title="Choose a seat · JunaLippu" width="xl">
+      <BookingProgress current={3} />
 
-          {!tripId || !depStopId || !arrivStopId ? (
-            <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
-              <h1 className="text-xl font-bold">Journey details are missing.</h1>
-              <p className="mt-2 text-sm">Start a new search to choose a valid train and route.</p>
-              <Link href="/" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-slate-950 px-4 font-semibold text-white">
-                Back to search
-              </Link>
-            </div>
-          ) : (
-          <>
+      {!hasSegment ? (
+        <div
+          role="alert"
+          className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900"
+        >
+          <h1 className="text-xl font-bold">Journey details are missing.</h1>
+          <p className="mt-2 text-sm">
+            Start a new search to choose a valid train and route.
+          </p>
+          <Link
+            href="/"
+            className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-slate-950 px-4 font-semibold text-white"
+          >
+            Back to search
+          </Link>
+        </div>
+      ) : (
+        <>
           <div className="mb-8">
             <Link
               href={{
-                pathname: "/BookingJourney",
+                pathname: "/trains",
                 query: {
                   depStopId,
                   arrivStopId,
@@ -129,15 +137,23 @@ const Journey: React.FC = () => {
             </h1>
             <p className="mt-2 text-slate-500">
               {journey.data
-                ? journey.data.departure_stop_name + " → " + journey.data.arrival_stop_name +
-                  " · " + journey.data.departure_time + "–" + journey.data.arrival_time +
-                  " · " + journey.data.duration
+                ? journey.data.departure_stop_name +
+                  " → " +
+                  journey.data.arrival_stop_name +
+                  " · " +
+                  journey.data.departure_time +
+                  "–" +
+                  journey.data.arrival_time +
+                  " · " +
+                  journey.data.duration
                 : "Loading journey details…"}
             </p>
           </div>
 
           <section aria-labelledby="class-title">
-            <h2 id="class-title" className="text-lg font-bold">Travel class</h2>
+            <h2 id="class-title" className="text-lg font-bold">
+              Travel class
+            </h2>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <button
                 type="button"
@@ -154,7 +170,9 @@ const Journey: React.FC = () => {
                 }
               >
                 <div className="font-bold">2nd class</div>
-                <div className="mt-1 text-sm text-slate-500">Standard seating</div>
+                <div className="mt-1 text-sm text-slate-500">
+                  Standard seating
+                </div>
               </button>
 
               <button
@@ -172,7 +190,9 @@ const Journey: React.FC = () => {
                 }
               >
                 <div className="font-bold">1st class</div>
-                <div className="mt-1 text-sm text-slate-500">Premium class · +50%</div>
+                <div className="mt-1 text-sm text-slate-500">
+                  Premium class · +50%
+                </div>
               </button>
             </div>
           </section>
@@ -180,27 +200,43 @@ const Journey: React.FC = () => {
           <section aria-labelledby="seat-title" className="mt-8">
             <div className="flex items-end justify-between gap-4">
               <div>
-                <h2 id="seat-title" className="text-lg font-bold">Available seats</h2>
-                <p className="mt-1 text-sm text-slate-500">Choose one seat for this demo reservation.</p>
+                <h2 id="seat-title" className="text-lg font-bold">
+                  Available seats
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Choose one seat for this demo reservation.
+                </p>
               </div>
               {selectedSeat && (
                 <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800">
-                  Car {selectedSeat.car_number} · Seat {selectedSeat.seat_number}
+                  Car {selectedSeat.car_number} · Seat{" "}
+                  {selectedSeat.seat_number}
                 </span>
               )}
             </div>
 
             {seats.isLoading && (
-              <div aria-live="polite" className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-6">
+              <div
+                aria-live="polite"
+                className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-6"
+              >
                 {Array.from({ length: 12 }, (_, index) => (
-                  <div key={index} className="h-14 animate-pulse rounded-xl bg-slate-200" />
+                  <div
+                    key={index}
+                    className="h-14 animate-pulse rounded-xl bg-slate-200"
+                  />
                 ))}
               </div>
             )}
 
             {seats.error && (
-              <div role="alert" className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-800">
-                <p className="font-semibold">We could not load available seats.</p>
+              <div
+                role="alert"
+                className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-800"
+              >
+                <p className="font-semibold">
+                  We could not load available seats.
+                </p>
                 <button
                   type="button"
                   onClick={() => void seats.refetch()}
@@ -211,18 +247,25 @@ const Journey: React.FC = () => {
               </div>
             )}
 
-            {availableSeats.length === 0 && !seats.isLoading && !seats.error && (
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-6 text-center text-slate-600">
-                No seats are available in this class.
-              </div>
-            )}
+            {availableSeats.length === 0 &&
+              !seats.isLoading &&
+              !seats.error && (
+                <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-6 text-center text-slate-600">
+                  No seats are available in this class.
+                </div>
+              )}
 
             <div className="mt-5 space-y-5">
               {groupedSeats.map(([carNumber, carSeats]) => (
-                <div key={carNumber} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div
+                  key={carNumber}
+                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                >
                   <div className="mb-4 flex items-center justify-between">
                     <h3 className="font-bold">Car {carNumber}</h3>
-                    <span className="text-xs text-slate-500">{carSeats.length} available</span>
+                    <span className="text-xs text-slate-500">
+                      {carSeats.length} available
+                    </span>
                   </div>
                   <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
                     {carSeats.map((seat) => {
@@ -270,13 +313,10 @@ const Journey: React.FC = () => {
               Review booking
             </button>
           </div>
-          </>
-          )}
-        </main>
-        <Footer />
-      </div>
-    </>
+        </>
+      )}
+    </PageLayout>
   );
 };
 
-export default Journey;
+export default SeatsPage;
