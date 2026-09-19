@@ -9,7 +9,7 @@ import "~/styles/globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-inter",
 });
 
 const MyApp: AppType<{ session: Session | null }> = ({
