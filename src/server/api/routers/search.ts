@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   calculateJourneyPriceCents,
   centsToEuros,
+  findForwardStopPair,
   minutesToDuration,
   timeToMinutes,
 } from "~/server/api/lib/journey";
@@ -59,21 +60,28 @@ export const searchRouter = createTRPCRouter({
         },
       });
 
-      const arrivalByTrip = new Map(
-        arrivals.map((arrival) => [arrival.trip_id, arrival.stop_sequence]),
-      );
+      const arrivalsByTrip = new Map<string, typeof arrivals>();
+      for (const arrival of arrivals) {
+        const group = arrivalsByTrip.get(arrival.trip_id) ?? [];
+        group.push(arrival);
+        arrivalsByTrip.set(arrival.trip_id, group);
+      }
+
+      const departuresByTrip = new Map<string, typeof departureStops>();
+      for (const departure of departureStops) {
+        const group = departuresByTrip.get(departure.trip_id) ?? [];
+        group.push(departure);
+        departuresByTrip.set(departure.trip_id, group);
+      }
 
       return Array.from(
         new Set(
-          departureStops.flatMap((departure) => {
-            const arrivalSequence = arrivalByTrip.get(departure.trip_id);
-            if (
-              arrivalSequence === undefined ||
-              departure.stop_sequence >= arrivalSequence
-            ) {
-              return [];
-            }
-            return [departure.trip.service_date];
+          Array.from(departuresByTrip.entries()).flatMap(([tripId, departures]) => {
+            const pair = findForwardStopPair(
+              departures,
+              arrivalsByTrip.get(tripId) ?? [],
+            );
+            return pair ? [pair.departure.trip.service_date] : [];
           }),
         ),
       ).sort();
@@ -120,20 +128,14 @@ export const searchRouter = createTRPCRouter({
 
       return trips
         .flatMap((trip) => {
-          const departure = trip.stop_times.find(
-            (stop) => stop.stop_id === input.dep_stop_id,
-          );
-          const arrival = trip.stop_times.find(
-            (stop) => stop.stop_id === input.arriv_stop_id,
+          const pair = findForwardStopPair(
+            trip.stop_times.filter((stop) => stop.stop_id === input.dep_stop_id),
+            trip.stop_times.filter((stop) => stop.stop_id === input.arriv_stop_id),
           );
 
-          if (
-            !departure ||
-            !arrival ||
-            departure.stop_sequence >= arrival.stop_sequence
-          ) {
-            return [];
-          }
+          if (!pair) return [];
+
+          const { departure, arrival } = pair;
 
           const durationMinutes =
             timeToMinutes(arrival.arrival_time) -
