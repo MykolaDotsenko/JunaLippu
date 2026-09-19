@@ -26,9 +26,10 @@ const reset = async () => {
 const seed = async () => {
   await reset();
 
-  const user = await db.user.create({
-    data: { email: "booking-integration@example.com" },
-  });
+  const [owner, otherUser] = await Promise.all([
+    db.user.create({ data: { email: "booking-owner@example.com" } }),
+    db.user.create({ data: { email: "booking-other@example.com" } }),
+  ]);
 
   await db.calendar.create({
     data: {
@@ -42,14 +43,31 @@ const seed = async () => {
       sunday: true,
     },
   });
-  await db.train.create({ data: { train_id: 1, train_number: "IC1" } });
-  await db.car.create({ data: { car_id: 1 } });
-  await db.seat.create({
-    data: { seat_id: 1, seat_number: 7, car_id: 1, travel_class: 2 },
-  });
-  await db.train_composition.create({
-    data: { train_id: 1, car_id: 1, car_number: 1 },
-  });
+
+  await Promise.all([
+    db.train.create({ data: { train_id: 1, train_number: "IC1" } }),
+    db.train.create({ data: { train_id: 2, train_number: "IC2" } }),
+  ]);
+  await Promise.all([
+    db.car.create({ data: { car_id: 1 } }),
+    db.car.create({ data: { car_id: 2 } }),
+  ]);
+  await Promise.all([
+    db.seat.create({
+      data: { seat_id: 1, seat_number: 7, car_id: 1, travel_class: 2 },
+    }),
+    db.seat.create({
+      data: { seat_id: 2, seat_number: 1, car_id: 2, travel_class: 1 },
+    }),
+  ]);
+  await Promise.all([
+    db.train_composition.create({
+      data: { train_id: 1, car_id: 1, car_number: 1 },
+    }),
+    db.train_composition.create({
+      data: { train_id: 2, car_id: 2, car_number: 1 },
+    }),
+  ]);
   await db.route.create({
     data: { route_id: "route", route_long_name: "A-B-C", train_id: 1 },
   });
@@ -98,12 +116,11 @@ const seed = async () => {
     }),
   ]);
 
-  return user;
+  return { owner, otherUser };
 };
 
-void test("booking procedures enforce segment availability end to end", async () => {
-  const user = await seed();
-  const caller = createCaller({
+const authenticatedCaller = (user: { id: string; email: string | null }) =>
+  createCaller({
     db,
     session: {
       user: {
@@ -116,6 +133,12 @@ void test("booking procedures enforce segment availability end to end", async ()
     },
   });
 
+void test("booking procedures enforce availability and authorization end to end", async () => {
+  const { owner, otherUser } = await seed();
+  const ownerCaller = authenticatedCaller(owner);
+  const otherCaller = authenticatedCaller(otherUser);
+  const anonymousCaller = createCaller({ db, session: null });
+
   const firstLeg = {
     seat_id: 1,
     trip_id: "trip",
@@ -124,30 +147,59 @@ void test("booking procedures enforce segment availability end to end", async ()
     travel_class: 2 as const,
   };
 
-  const review = await caller.booking.getReview(firstLeg);
+  const review = await ownerCaller.booking.getReview(firstLeg);
   assert.equal(review.departure_stop_name, "Alpha");
   assert.equal(review.arrival_stop_name, "Beta");
   assert.equal(review.service_date, "2024-05-06");
   assert.equal(review.seat_number, 7);
   assert.ok(review.price > 0);
 
-  const reservation = await caller.booking.createReservation(firstLeg);
+  await assert.rejects(
+    anonymousCaller.booking.createReservation(firstLeg),
+    (error) => error instanceof TRPCError && error.code === "UNAUTHORIZED",
+  );
+
+  await assert.rejects(
+    ownerCaller.booking.getReview({ ...firstLeg, travel_class: 1 }),
+    (error) => error instanceof TRPCError && error.code === "BAD_REQUEST",
+  );
+
+  await assert.rejects(
+    ownerCaller.booking.getReview({
+      ...firstLeg,
+      seat_id: 2,
+      travel_class: 1,
+    }),
+    (error) => error instanceof TRPCError && error.code === "BAD_REQUEST",
+  );
+
+  const reservation = await ownerCaller.booking.createReservation(firstLeg);
   assert.ok(reservation.reservation_id > 0);
 
   await assert.rejects(
-    caller.booking.getReview(firstLeg),
-    (error) =>
-      error instanceof TRPCError &&
-      error.code === "CONFLICT",
+    ownerCaller.booking.getReview(firstLeg),
+    (error) => error instanceof TRPCError && error.code === "CONFLICT",
   );
 
-  const secondLegReview = await caller.booking.getReview({
+  const secondLegReview = await ownerCaller.booking.getReview({
     ...firstLeg,
     dep_stop_id: "B",
     arriv_stop_id: "C",
   });
   assert.equal(secondLegReview.departure_stop_name, "Beta");
   assert.equal(secondLegReview.arrival_stop_name, "Gamma");
+
+  const ownerReservation = await ownerCaller.booking.getReservation({
+    reservation_id: reservation.reservation_id,
+  });
+  assert.equal(ownerReservation.reservation_id, reservation.reservation_id);
+
+  await assert.rejects(
+    otherCaller.booking.getReservation({
+      reservation_id: reservation.reservation_id,
+    }),
+    (error) => error instanceof TRPCError && error.code === "NOT_FOUND",
+  );
 });
 
 void test.after(async () => {
