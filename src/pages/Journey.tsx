@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -20,6 +20,11 @@ const Journey: React.FC = () => {
 
   const [travelClass, setTravelClass] = useState<1 | 2>(initialTravelClass);
   const [selectedSeatId, setSelectedSeatId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (router.query.travelClass === "1") setTravelClass(1);
+    if (router.query.travelClass === "2") setTravelClass(2);
+  }, [router.query.travelClass]);
 
   const journey = api.booking.getJourneyDetails.useQuery(
     { trip_id: tripId, dep_stop_id: depStopId, arriv_stop_id: arrivStopId },
