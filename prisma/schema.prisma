@@ -86,11 +86,7 @@ model ReservationSegment {
   seat_id        Int
   stop_sequence  Int
 
-  reservation Reservation @relation(
-    fields: [reservation_id, trip_id, seat_id],
-    references: [reservation_id, trip_id, seat_id],
-    onDelete: Cascade
-  )
+  reservation Reservation @relation(fields: [reservation_id, trip_id, seat_id], references: [reservation_id, trip_id, seat_id], onDelete: Cascade)
 
   @@id([reservation_id, stop_sequence])
   @@unique([trip_id, seat_id, stop_sequence])
