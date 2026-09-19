@@ -10,6 +10,7 @@ import GoogleProvider from "next-auth/providers/google";
 
 import { env } from "~/env";
 import { db } from "~/server/db";
+import { logger } from "~/server/logger";
 
 declare module "next-auth" {
   interface Session extends DefaultSession {
@@ -18,6 +19,20 @@ declare module "next-auth" {
     };
   }
 }
+
+const buildProviders = (): NextAuthOptions["providers"] => {
+  const clientId = env.GOOGLE_CLIENT_ID;
+  const clientSecret = env.GOOGLE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    logger.warn("auth.google.disabled", {
+      reason: "GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET are not configured",
+    });
+    return [];
+  }
+
+  return [GoogleProvider({ clientId, clientSecret })];
+};
 
 export const authOptions: NextAuthOptions = {
   callbacks: {
@@ -30,12 +45,7 @@ export const authOptions: NextAuthOptions = {
     }),
   },
   adapter: PrismaAdapter(db) as Adapter,
-  providers: [
-    GoogleProvider({
-      clientId: env.GOOGLE_CLIENT_ID ?? "",
-      clientSecret: env.GOOGLE_CLIENT_SECRET ?? "",
-    }),
-  ],
+  providers: buildProviders(),
 };
 
 export const getServerAuthSession = (ctx: {
