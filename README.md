@@ -137,11 +137,12 @@ Pure domain utilities:
 pnpm test
 ```
 
-Database booking invariants:
+Database booking invariants and tRPC booking integration:
 
 ```bash
 pnpm exec prisma db push --force-reset
 pnpm test:db
+pnpm test:integration
 ```
 
 The database invariant suite verifies that overlapping seat reservations are rejected while the same seat can be reused on a later non-overlapping segment.
@@ -177,6 +178,7 @@ prisma generate
 prisma db push --force-reset
 unit tests
 database invariant tests
+booking integration tests
 eslint
 next build
 ```
