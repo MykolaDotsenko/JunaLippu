@@ -4,16 +4,18 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [fix/production-readiness]
+    branches: [main, fix/senior-hardening]
 
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       DATABASE_URL: "file:./ci.db"
       NEXTAUTH_URL: "http://localhost:3000"
       NEXTAUTH_SECRET: "ci-only-secret-not-for-production"
+      GOOGLE_CLIENT_ID: "ci-client-id"
+      GOOGLE_CLIENT_SECRET: "ci-client-secret"
 
     steps:
       - name: Checkout
@@ -36,6 +38,15 @@ jobs:
 
       - name: Generate Prisma client
         run: pnpm exec prisma generate
+
+      - name: Create test database
+        run: pnpm exec prisma db push --force-reset
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Database invariant tests
+        run: pnpm test:db
 
       - name: Lint
         run: pnpm lint
