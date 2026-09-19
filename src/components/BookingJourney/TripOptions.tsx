@@ -10,10 +10,6 @@ const TripOptions: React.FC = () => {
     typeof router.query.depStopId === "string" ? router.query.depStopId : "";
   const arrivStopId =
     typeof router.query.arrivStopId === "string" ? router.query.arrivStopId : "";
-  const departureCity =
-    typeof router.query.departureCity === "string" ? router.query.departureCity : "";
-  const arrivalCity =
-    typeof router.query.arrivalCity === "string" ? router.query.arrivalCity : "";
   const startDate =
     typeof router.query.startDate === "string" ? router.query.startDate : "";
 
@@ -109,12 +105,7 @@ const TripOptions: React.FC = () => {
                     tripId: trip.trip_id,
                     depStopId,
                     arrivStopId,
-                    departureCity,
-                    arrivalCity,
                     date: startDate,
-                    departureTime: trip.departure_time,
-                    arrivalTime: trip.arrival_time,
-                    duration: trip.duration,
                   },
                 }}
                 className="inline-flex min-h-11 items-center rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
