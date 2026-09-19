@@ -3,26 +3,41 @@ export type TravelClass = 1 | 2;
 export const SECOND_CLASS_FARE_CENTS_PER_HOUR = 1920;
 export const FIRST_CLASS_FARE_MULTIPLIER = 1.5;
 
-const MINUTES_PER_HOUR = 60;
+const SECONDS_PER_MINUTE = 60;
+const SECONDS_PER_HOUR = 60 * SECONDS_PER_MINUTE;
 const GTFS_TIME = /^(\d+):([0-5]\d):([0-5]\d)$/;
 
-export const timeToMinutes = (value: string): number | null => {
+export const timeToSeconds = (value: string): number | null => {
   const match = GTFS_TIME.exec(value);
   if (!match) return null;
 
   const hours = Number(match[1]);
   const minutes = Number(match[2]);
-  const totalMinutes = hours * MINUTES_PER_HOUR + minutes;
+  const seconds = Number(match[3]);
+  const totalSeconds =
+    hours * SECONDS_PER_HOUR + minutes * SECONDS_PER_MINUTE + seconds;
 
-  return Number.isSafeInteger(totalMinutes) ? totalMinutes : null;
+  return Number.isSafeInteger(totalSeconds) ? totalSeconds : null;
 };
 
-export const journeyDurationMinutes = (
+export const compareGtfsTimes = (left: string, right: string) => {
+  const leftSeconds = timeToSeconds(left);
+  const rightSeconds = timeToSeconds(right);
+
+  if (leftSeconds === null && rightSeconds === null) {
+    return left.localeCompare(right);
+  }
+  if (leftSeconds === null) return 1;
+  if (rightSeconds === null) return -1;
+  return leftSeconds - rightSeconds;
+};
+
+export const journeyDurationSeconds = (
   departureTime: string,
   arrivalTime: string,
 ): number | null => {
-  const departure = timeToMinutes(departureTime);
-  const arrival = timeToMinutes(arrivalTime);
+  const departure = timeToSeconds(departureTime);
+  const arrival = timeToSeconds(arrivalTime);
 
   if (departure === null || arrival === null) return null;
 
@@ -30,18 +45,19 @@ export const journeyDurationMinutes = (
   return difference < 0 ? null : difference;
 };
 
-export const minutesToDuration = (minutes: number) => {
-  const hours = Math.floor(minutes / MINUTES_PER_HOUR);
-  const remainder = minutes % MINUTES_PER_HOUR;
-  return `${hours} h ${remainder.toString().padStart(2, "0")} min`;
+export const secondsToDuration = (seconds: number) => {
+  const roundedMinutes = Math.round(seconds / SECONDS_PER_MINUTE);
+  const hours = Math.floor(roundedMinutes / SECONDS_PER_MINUTE);
+  const minutes = roundedMinutes % SECONDS_PER_MINUTE;
+  return `${hours} h ${minutes.toString().padStart(2, "0")} min`;
 };
 
 export const calculateJourneyPriceCents = (
-  durationMinutes: number,
+  durationSeconds: number,
   travelClass: TravelClass,
 ) => {
   const basePriceCents =
-    (durationMinutes / MINUTES_PER_HOUR) * SECOND_CLASS_FARE_CENTS_PER_HOUR;
+    (durationSeconds / SECONDS_PER_HOUR) * SECOND_CLASS_FARE_CENTS_PER_HOUR;
   const classMultiplier = travelClass === 1 ? FIRST_CLASS_FARE_MULTIPLIER : 1;
   return Math.round(basePriceCents * classMultiplier);
 };

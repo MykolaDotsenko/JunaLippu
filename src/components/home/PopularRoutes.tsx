@@ -1,30 +1,27 @@
 import React from "react";
 import Link from "next/link";
 
-const routes = [
-  { from: "HKI", to: "TPE", label: "Helsinki → Tampere" },
-  { from: "HKI", to: "OL", label: "Helsinki → Oulu" },
-];
+import { DEMO_ROUTES } from "~/domain/demoRoutes";
 
 const PopularRoutes = () => (
-  <section className="py-12 sm:py-16" aria-labelledby="popular-routes-title">
+  <section className="py-12 sm:py-16" aria-labelledby="demo-routes-title">
     <div className="mb-6">
       <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-600">
         Quick start
       </p>
       <h2
-        id="popular-routes-title"
+        id="demo-routes-title"
         className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl"
       >
-        Popular demo routes
+        Try a verified demo route
       </h2>
       <p className="mt-2 text-slate-600">
-        Prefill a route, then choose an available service date.
+        These shortcuts are checked against the bundled timetable dataset.
       </p>
     </div>
 
     <div className="grid gap-4 sm:grid-cols-2">
-      {routes.map((route) => (
+      {DEMO_ROUTES.map((route) => (
         <Link
           key={route.label}
           href={{ pathname: "/", query: { from: route.from, to: route.to } }}
@@ -33,10 +30,13 @@ const PopularRoutes = () => (
           <div>
             <div className="font-semibold text-slate-950">{route.label}</div>
             <div className="mt-1 text-sm text-slate-500">
-              1 passenger · one way
+              Choose from available historical service dates
             </div>
           </div>
-          <span className="text-xl text-blue-600 transition group-hover:translate-x-1">
+          <span
+            aria-hidden="true"
+            className="text-xl text-blue-600 transition group-hover:translate-x-1"
+          >
             →
           </span>
         </Link>

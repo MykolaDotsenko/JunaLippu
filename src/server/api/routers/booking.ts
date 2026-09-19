@@ -5,8 +5,8 @@ import { z } from "zod";
 import {
   calculateJourneyPriceCents,
   centsToEuros,
-  journeyDurationMinutes,
-  minutesToDuration,
+  journeyDurationSeconds,
+  secondsToDuration,
   pickJourneyStops,
   segmentSequences,
 } from "~/server/api/lib/journey";
@@ -123,12 +123,12 @@ const getJourneySegment = async (ctx: TRPCContext, input: SegmentInput) => {
   }
 
   const { departure, arrival } = journey;
-  const durationMinutes = journeyDurationMinutes(
+  const durationSeconds = journeyDurationSeconds(
     departure.departure_time,
     arrival.arrival_time,
   );
 
-  if (durationMinutes === null) {
+  if (durationSeconds === null) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Invalid journey duration.",
@@ -141,7 +141,7 @@ const getJourneySegment = async (ctx: TRPCContext, input: SegmentInput) => {
     arrival,
     departureStop,
     arrivalStop,
-    durationMinutes,
+    durationSeconds,
     segmentSequences: segmentSequences(
       departure.stop_sequence,
       arrival.stop_sequence,
@@ -192,7 +192,7 @@ const getSeatContext = async (ctx: TRPCContext, input: BookingInput) => {
     carNumber: composition.car_number,
     isAvailable: !overlappingSegment,
     priceCents: calculateJourneyPriceCents(
-      segment.durationMinutes,
+      segment.durationSeconds,
       input.travel_class,
     ),
   };
@@ -260,11 +260,11 @@ export const bookingRouter = createTRPCRouter({
         arrival_stop_name: segment.arrivalStop.stop_name,
         departure_time: segment.departure.departure_time,
         arrival_time: segment.arrival.arrival_time,
-        duration: minutesToDuration(segment.durationMinutes),
+        duration: secondsToDuration(segment.durationSeconds),
         travel_class: input.travel_class,
         price: centsToEuros(
           calculateJourneyPriceCents(
-            segment.durationMinutes,
+            segment.durationSeconds,
             input.travel_class,
           ),
         ),
@@ -344,7 +344,7 @@ export const bookingRouter = createTRPCRouter({
         arrival_stop_name: data.arrivalStop.stop_name,
         departure_time: data.departure.departure_time,
         arrival_time: data.arrival.arrival_time,
-        duration: minutesToDuration(data.durationMinutes),
+        duration: secondsToDuration(data.durationSeconds),
         travel_class: input.travel_class,
         car_number: data.carNumber,
         seat_number: data.seat.seat_number,

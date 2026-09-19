@@ -17,4 +17,6 @@ void test("formatServiceDate passes through anything it cannot parse", () => {
   assert.equal(formatServiceDate(""), "");
   assert.equal(formatServiceDate("not-a-date"), "not-a-date");
   assert.equal(formatServiceDate("2024-05"), "2024-05");
+  assert.equal(formatServiceDate("2024-02-31"), "2024-02-31");
+  assert.equal(formatServiceDate("2024-13-01"), "2024-13-01");
 });
