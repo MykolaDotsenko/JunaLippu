@@ -29,7 +29,9 @@ const PageLayout = ({
   const router = useRouter();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
-  const canonical = siteUrl ? new URL(router.pathname, siteUrl).toString() : null;
+  const canonical = siteUrl
+    ? new URL(router.pathname, siteUrl).toString()
+    : null;
 
   return (
     <>
