@@ -54,7 +54,7 @@ const config = {
 
   headers: async () => [
     {
-      source: "/(.*)",
+      source: "/:path*",
       headers: securityHeaders,
     },
   ],
