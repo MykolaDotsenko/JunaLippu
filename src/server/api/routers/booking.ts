@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   calculateJourneyPriceCents,
   centsToEuros,
+  findForwardStopPair,
   minutesToDuration,
   timeToMinutes,
 } from "~/server/api/lib/journey";
@@ -62,12 +63,12 @@ const getJourneySegment = async (
     throw new TRPCError({ code: "NOT_FOUND", message: "Trip not found." });
   }
 
-  const [departure, arrival, departureStop, arrivalStop] = await Promise.all([
-    ctx.db.stop_time.findFirst({
+  const [departures, arrivals, departureStop, arrivalStop] = await Promise.all([
+    ctx.db.stop_time.findMany({
       where: { trip_id: input.trip_id, stop_id: input.dep_stop_id },
       select: { stop_sequence: true, departure_time: true },
     }),
-    ctx.db.stop_time.findFirst({
+    ctx.db.stop_time.findMany({
       where: { trip_id: input.trip_id, stop_id: input.arriv_stop_id },
       select: { stop_sequence: true, arrival_time: true },
     }),
@@ -81,18 +82,15 @@ const getJourneySegment = async (
     }),
   ]);
 
-  if (
-    !departure ||
-    !arrival ||
-    !departureStop ||
-    !arrivalStop ||
-    departure.stop_sequence >= arrival.stop_sequence
-  ) {
+  const pair = findForwardStopPair(departures, arrivals);
+  if (!pair || !departureStop || !arrivalStop) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "Invalid departure/arrival segment for this trip.",
     });
   }
+
+  const { departure, arrival } = pair;
 
   const durationMinutes =
     timeToMinutes(arrival.arrival_time) -
