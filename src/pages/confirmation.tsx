@@ -54,7 +54,9 @@ const ConfirmationPage = () => {
 
       {reservationId > 0 && status === "unauthenticated" && (
         <div className="rounded-2xl border border-slate-200 bg-white p-7 text-center shadow-sm">
-          <h1 className="text-2xl font-bold">Sign in to view this reservation</h1>
+          <h1 className="text-2xl font-bold">
+            Sign in to view this reservation
+          </h1>
           <p className="mt-2 text-sm leading-6 text-slate-500">
             Reservation details are private and only available to the account
             that created them.
