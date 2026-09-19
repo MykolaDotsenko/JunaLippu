@@ -13,8 +13,8 @@ const TripOptions: React.FC = () => {
   const startDate = typeof router.query.startDate === "string" ? router.query.startDate : "";
 
   const schedule = api.search.getSchedule.useQuery(
-    { dep_stop_id: depStopId, arriv_stop_id: arrivStopId },
-    { enabled: Boolean(depStopId && arrivStopId) },
+    { dep_stop_id: depStopId, arriv_stop_id: arrivStopId, travel_date: startDate },
+    { enabled: Boolean(depStopId && arrivStopId && startDate) },
   );
 
   if (schedule.isLoading) {
