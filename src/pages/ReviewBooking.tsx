@@ -21,6 +21,15 @@ const ReviewBooking: React.FC = () => {
     typeof router.query.travelClass === "string" ? router.query.travelClass : "2",
   ) as 1 | 2;
   const date = typeof router.query.date === "string" ? router.query.date : "";
+  const departureCity =
+    typeof router.query.departureCity === "string" ? router.query.departureCity : "";
+  const arrivalCity =
+    typeof router.query.arrivalCity === "string" ? router.query.arrivalCity : "";
+  const departureTime =
+    typeof router.query.departureTime === "string" ? router.query.departureTime : "";
+  const arrivalTime =
+    typeof router.query.arrivalTime === "string" ? router.query.arrivalTime : "";
+  const duration = typeof router.query.duration === "string" ? router.query.duration : "";
 
   const input = {
     seat_id: seatId,
@@ -66,7 +75,17 @@ const ReviewBooking: React.FC = () => {
           <Link
             href={{
               pathname: "/Journey",
-              query: { tripId, depStopId, arrivStopId, date },
+              query: {
+                tripId,
+                depStopId,
+                arrivStopId,
+                date,
+                departureCity,
+                arrivalCity,
+                departureTime,
+                arrivalTime,
+                duration,
+              },
             }}
             className="text-sm font-semibold text-blue-700 hover:underline"
           >
