@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 
@@ -16,6 +16,11 @@ const asString = (value: string | string[] | undefined) =>
 
 const SeatsPage = () => {
   const router = useRouter();
+  const [routerReady, setRouterReady] = useState(false);
+
+  useEffect(() => {
+    if (router.isReady) setRouterReady(true);
+  }, [router.isReady]);
 
   const tripId = asString(router.query.tripId);
   const depStopId = asString(router.query.depStopId);
@@ -102,7 +107,7 @@ const SeatsPage = () => {
     onChange: selectSeat,
   });
 
-  if (!router.isReady) {
+  if (!routerReady) {
     return (
       <PageLayout title="Choose a seat · JunaLippu" width="xl">
         <BookingProgress current={3} />
