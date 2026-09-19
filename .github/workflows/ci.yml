@@ -1,8 +1,5 @@
 name: CI
 
-permissions:
-  contents: write
-
 on:
   pull_request:
     branches: [main]
@@ -23,8 +20,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: fix/senior-hardening
 
       - name: Enable pnpm
         uses: pnpm/action-setup@v4
@@ -36,18 +31,7 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Refresh lockfile on hardening branch
-        if: github.event_name == 'pull_request'
-        run: |
-          if ! git diff --quiet -- pnpm-lock.yaml; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add pnpm-lock.yaml
-            git commit -m "chore: refresh pnpm lockfile [skip ci]"
-            git push origin HEAD:fix/senior-hardening
-          fi
+        run: pnpm install --frozen-lockfile
 
       - name: Validate Prisma schema
         run: pnpm exec prisma validate
