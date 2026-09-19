@@ -26,7 +26,16 @@ const BookingSuccess: React.FC = () => {
       <div className="min-h-screen bg-slate-50 text-slate-950">
         <Header />
         <main id="main-content" className="mx-auto max-w-2xl px-4 py-12 sm:px-6 sm:py-16">
-          {reservation.isLoading && (
+          {reservationId <= 0 && (
+            <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+              <h1 className="text-xl font-bold">Reservation number is missing.</h1>
+              <Link href="/" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-slate-950 px-4 font-semibold text-white">
+                Back to home
+              </Link>
+            </div>
+          )}
+
+          {reservationId > 0 && reservation.isLoading && (
             <div className="h-80 animate-pulse rounded-3xl bg-slate-200" />
           )}
 
@@ -60,6 +69,10 @@ const BookingSuccess: React.FC = () => {
                   {reservation.data.departure_stop_name} → {reservation.data.arrival_stop_name}
                 </div>
                 <div className="mt-4 grid gap-4 text-sm text-slate-600 sm:grid-cols-2">
+                  <div>
+                    <span className="block text-xs uppercase tracking-wide text-slate-400">Date</span>
+                    {reservation.data.service_date}
+                  </div>
                   <div>
                     <span className="block text-xs uppercase tracking-wide text-slate-400">Time</span>
                     {reservation.data.departure_time}–{reservation.data.arrival_time}
