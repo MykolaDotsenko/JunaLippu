@@ -20,7 +20,7 @@
     "@auth/prisma-adapter": "1.4.0",
     "@prisma/adapter-better-sqlite3": "7.10.0",
     "@prisma/client": "7.10.0",
-    "@t3-oss/env-nextjs": "^0.13.8",
+    "@t3-oss/env-nextjs": "0.13.11",
     "@tanstack/react-query": "5.103.1",
     "@trpc/client": "11.19.0",
     "@trpc/next": "11.19.0",
@@ -29,9 +29,9 @@
     "next": "16.3.5",
     "next-auth": "4.24.6",
     "react": "19.3.0",
-    "react-datepicker": "8.7.0",
+    "react-datepicker": "9.1.0",
     "react-dom": "19.3.0",
-    "superjson": "2.2.2",
+    "superjson": "2.2.6",
     "zod": "3.25.76"
   },
   "devDependencies": {
@@ -49,5 +49,5 @@
     "tsx": "4.23.13",
     "typescript": "^5.9.2"
   },
-  "packageManager": "pnpm@10.17.1"
+  "packageManager": "pnpm@10.34.5"
 }
