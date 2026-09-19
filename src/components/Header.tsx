@@ -1,73 +1,52 @@
 import React, { useState } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { useRouter } from "next/router";
+import Link from "next/link";
 
 const Header: React.FC = () => {
-  const router = useRouter();
   const { data: session, status } = useSession();
-  const [showDescription, setShowDescription] = useState(false);
-
-  const handleAuth = () => {
-    if (session) {
-      void signOut({ callbackUrl: "/" });
-      return;
-    }
-
-    void signIn("google", { callbackUrl: "/" });
-  };
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   return (
-    <header className="relative flex h-24 items-center justify-between p-4 text-white">
-      <button
-        type="button"
-        onClick={() => void router.push("/")}
-        className="absolute left-[50px] top-0 flex h-full items-center"
-        aria-label="Go to home page"
-      >
-        <img
-          src="/images/logo.png"
-          alt="JunaLippu"
-          className="h-full w-[199px] rounded-[60px]"
-        />
-      </button>
+    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+        <Link
+          href="/"
+          className="rounded-lg text-xl font-extrabold tracking-tight text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+        >
+          Juna<span className="text-blue-600">Lippu</span>
+        </Link>
 
-      <nav className="ml-auto pr-[236px]">
-        <ul className="flex space-x-4">
-          <li>
-            <button
-              onClick={() => void router.push("/")}
-              className="px-4 py-2 text-2xl font-bold italic text-black hover:text-gray-500"
-            >
-              HOME
-            </button>
-          </li>
-          <li>
-            <button
-              onClick={() => setShowDescription((open) => !open)}
-              className="px-4 py-2 text-2xl font-bold italic text-black hover:text-gray-500"
-            >
-              ABOUT
-            </button>
-          </li>
-          <li>
-            <button
-              onClick={handleAuth}
-              disabled={status === "loading"}
-              className="px-4 py-2 text-2xl font-bold italic text-black hover:text-gray-500 disabled:opacity-50"
-            >
-              {session ? "LOG OUT" : "LOG IN"}
-            </button>
-          </li>
-        </ul>
-      </nav>
+        <nav aria-label="Primary navigation" className="flex items-center gap-2 sm:gap-4">
+          <button
+            type="button"
+            onClick={() => setAboutOpen((open) => !open)}
+            aria-expanded={aboutOpen}
+            className="min-h-11 rounded-lg px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          >
+            About
+          </button>
+          <button
+            type="button"
+            disabled={status === "loading"}
+            onClick={() =>
+              session
+                ? void signOut({ callbackUrl: "/" })
+                : void signIn("google", { callbackUrl: "/" })
+            }
+            className="min-h-11 rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
+          >
+            {session ? "Log out" : "Log in"}
+          </button>
+        </nav>
+      </div>
 
-      {showDescription && (
-        <div className="absolute right-0 top-16 z-20 max-w-sm rounded-lg bg-white p-6 shadow-lg">
-          <h3 className="mb-2 text-xl font-semibold text-gray-800">About JunaLippu</h3>
-          <p className="text-base leading-relaxed text-gray-600">
-            JunaLippu is a demo railway booking application for searching journeys,
-            selecting seats, and creating authenticated reservations.
-          </p>
+      {aboutOpen && (
+        <div className="border-t border-slate-200 bg-slate-50">
+          <div className="mx-auto max-w-6xl px-4 py-4 text-sm leading-6 text-slate-600 sm:px-6">
+            JunaLippu is a portfolio railway-booking demo built with Next.js,
+            tRPC, Prisma and NextAuth. It uses historical 2024 sample timetable
+            data and does not process real payments.
+          </div>
         </div>
       )}
     </header>
