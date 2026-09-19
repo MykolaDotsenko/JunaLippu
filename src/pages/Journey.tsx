@@ -70,6 +70,11 @@ const Journey: React.FC = () => {
         seatId: selectedSeat.seat_id.toString(),
         travelClass: travelClass.toString(),
         date,
+        departureCity,
+        arrivalCity,
+        departureTime,
+        arrivalTime,
+        duration,
       },
     });
   };
