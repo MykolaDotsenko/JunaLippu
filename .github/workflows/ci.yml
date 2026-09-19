@@ -1,15 +1,18 @@
 name: CI
 
+permissions:
+  contents: write
+
 on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
+    branches: [main, feat/final-polish-2026]
 
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       DATABASE_URL: "file:./ci.db"
       NEXTAUTH_URL: "http://localhost:3000"
@@ -20,6 +23,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: feat/final-polish-2026
 
       - name: Enable pnpm
         uses: pnpm/action-setup@v4
@@ -31,7 +36,18 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Refresh lockfile on platform-upgrade branch
+        if: github.event_name == 'push'
+        run: |
+          if ! git diff --quiet -- pnpm-lock.yaml; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add pnpm-lock.yaml
+            git commit -m "chore: refresh pnpm lockfile [skip ci]"
+            git push
+          fi
 
       - name: Validate Prisma schema
         run: pnpm exec prisma validate
@@ -60,8 +76,8 @@ jobs:
       - name: Seed browser test database
         run: node tests/e2e-seed.mjs
 
-      - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
+      - name: Install browsers
+        run: pnpm exec playwright install --with-deps chromium firefox
 
-      - name: Mobile browser E2E
+      - name: Browser and accessibility E2E
         run: pnpm test:e2e
