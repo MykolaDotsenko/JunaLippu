@@ -28,8 +28,14 @@ const SearchJourney: React.FC = () => {
   const [date, setDate] = useState<Date | null>(null);
 
   useEffect(() => {
-    if (typeof router.query.from === "string") setFrom(router.query.from);
-    if (typeof router.query.to === "string") setTo(router.query.to);
+    const nextFrom = typeof router.query.from === "string" ? router.query.from : "";
+    const nextTo = typeof router.query.to === "string" ? router.query.to : "";
+
+    if (nextFrom !== from || nextTo !== to) {
+      setFrom(nextFrom);
+      setTo(nextTo);
+      setDate(null);
+    }
   }, [router.query.from, router.query.to]);
 
   const availableDatesQuery = api.search.getAvailableDates.useQuery(
@@ -58,7 +64,15 @@ const SearchJourney: React.FC = () => {
   );
 
   const invalidRoute = Boolean(from && to && from === to);
-  const canSearch = Boolean(from && to && date && !invalidRoute);
+  const selectedDateIsAvailable = Boolean(
+    date &&
+      availableDates.some(
+        (availableDate) => toLocalDateString(availableDate) === toLocalDateString(date),
+      ),
+  );
+  const canSearch = Boolean(
+    from && to && date && !invalidRoute && selectedDateIsAvailable,
+  );
 
   const swapStations = () => {
     setFrom(to);
