@@ -36,9 +36,11 @@ const Journey: React.FC = () => {
     { enabled: Boolean(tripId && depStopId && arrivStopId), retry: 1 },
   );
 
+  const availableSeats = useMemo(() => seats.data ?? [], [seats.data]);
+
   const selectedSeat = useMemo(
-    () => seats.data?.find((seat) => seat.seat_id === selectedSeatId),
-    [seats.data, selectedSeatId],
+    () => availableSeats.find((seat) => seat.seat_id === selectedSeatId),
+    [availableSeats, selectedSeatId],
   );
 
   const review = api.booking.getReview.useQuery(
@@ -57,13 +59,13 @@ const Journey: React.FC = () => {
 
   const groupedSeats = useMemo(() => {
     const groups = new Map<number, NonNullable<typeof seats.data>>();
-    for (const seat of seats.data ?? []) {
+    for (const seat of availableSeats) {
       const group = groups.get(seat.car_number) ?? [];
       group.push(seat);
       groups.set(seat.car_number, group);
     }
     return Array.from(groups.entries()).sort(([a], [b]) => a - b);
-  }, [seats.data]);
+  }, [availableSeats]);
 
   const handleContinue = () => {
     if (!selectedSeat || !review.data) return;
@@ -204,7 +206,7 @@ const Journey: React.FC = () => {
               </div>
             )}
 
-            {seats.data?.length === 0 && (
+            {availableSeats.length === 0 && !seats.isLoading && !seats.error && (
               <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-6 text-center text-slate-600">
                 No seats are available in this class.
               </div>
