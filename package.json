@@ -10,7 +10,7 @@
     "dev": "next dev",
     "postinstall": "prisma generate",
     "lint": "eslint .",
-    "test": "tsx --test tests/*.test.ts",
+    "test": "tsx --test tests/journey.test.ts",
     "test:db": "node --test tests/db-invariants.test.mjs",
     "start": "next start",
     "test:integration": "tsx --test tests/booking.integration.test.ts"
