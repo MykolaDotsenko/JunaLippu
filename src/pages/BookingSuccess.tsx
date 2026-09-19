@@ -70,23 +70,23 @@ const BookingSuccess: React.FC = () => {
                 </div>
                 <div className="mt-4 grid gap-4 text-sm text-slate-600 sm:grid-cols-2">
                   <div>
-                    <span className="block text-xs uppercase tracking-wide text-slate-400">Date</span>
+                    <span className="block text-xs uppercase tracking-wide text-slate-500">Date</span>
                     {reservation.data.service_date}
                   </div>
                   <div>
-                    <span className="block text-xs uppercase tracking-wide text-slate-400">Time</span>
+                    <span className="block text-xs uppercase tracking-wide text-slate-500">Time</span>
                     {reservation.data.departure_time}–{reservation.data.arrival_time}
                   </div>
                   <div>
-                    <span className="block text-xs uppercase tracking-wide text-slate-400">Train</span>
+                    <span className="block text-xs uppercase tracking-wide text-slate-500">Train</span>
                     {reservation.data.train_number}
                   </div>
                   <div>
-                    <span className="block text-xs uppercase tracking-wide text-slate-400">Seat</span>
+                    <span className="block text-xs uppercase tracking-wide text-slate-500">Seat</span>
                     Car {reservation.data.car_number} · Seat {reservation.data.seat_number}
                   </div>
                   <div>
-                    <span className="block text-xs uppercase tracking-wide text-slate-400">Class</span>
+                    <span className="block text-xs uppercase tracking-wide text-slate-500">Class</span>
                     {reservation.data.travel_class === 1 ? "1st class" : "2nd class"}
                   </div>
                 </div>
