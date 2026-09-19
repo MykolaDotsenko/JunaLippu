@@ -2,8 +2,11 @@ import React, { useState } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 
+import { useGoogleAuthStatus } from "~/hooks/useGoogleAuthStatus";
+
 const Header = () => {
   const { data: session, status } = useSession();
+  const googleAuthStatus = useGoogleAuthStatus();
   const [aboutOpen, setAboutOpen] = useState(false);
 
   return (
@@ -45,15 +48,26 @@ const Header = () => {
             </button>
             <button
               type="button"
-              disabled={status === "loading"}
-              onClick={() =>
-                session
-                  ? void signOut({ callbackUrl: "/" })
-                  : void signIn("google", { callbackUrl: "/" })
+              disabled={
+                status === "loading" ||
+                (!session && googleAuthStatus !== "available")
               }
+              onClick={() => {
+                if (session) {
+                  void signOut({ callbackUrl: "/" });
+                } else if (googleAuthStatus === "available") {
+                  void signIn("google", { callbackUrl: "/" });
+                }
+              }}
               className="min-h-11 rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
             >
-              {session ? "Log out" : "Log in"}
+              {session
+                ? "Log out"
+                : googleAuthStatus === "unavailable"
+                  ? "Sign-in unavailable"
+                  : googleAuthStatus === "loading"
+                    ? "Checking sign-in…"
+                    : "Log in"}
             </button>
           </nav>
         </div>
