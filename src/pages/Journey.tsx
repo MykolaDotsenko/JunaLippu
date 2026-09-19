@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -14,24 +14,38 @@ const Journey: React.FC = () => {
   const tripId = typeof router.query.tripId === "string" ? router.query.tripId : "";
   const depStopId = typeof router.query.depStopId === "string" ? router.query.depStopId : "";
   const arrivStopId = typeof router.query.arrivStopId === "string" ? router.query.arrivStopId : "";
-  const departureCity = typeof router.query.departureCity === "string" ? router.query.departureCity : "";
-  const arrivalCity = typeof router.query.arrivalCity === "string" ? router.query.arrivalCity : "";
-  const departureTime = typeof router.query.departureTime === "string" ? router.query.departureTime : "";
-  const arrivalTime = typeof router.query.arrivalTime === "string" ? router.query.arrivalTime : "";
-  const duration = typeof router.query.duration === "string" ? router.query.duration : "";
   const date = typeof router.query.date === "string" ? router.query.date : "";
+  const initialTravelClass =
+    router.query.travelClass === "1" ? 1 : 2;
 
-  const [travelClass, setTravelClass] = useState<1 | 2>(2);
+  const [travelClass, setTravelClass] = useState<1 | 2>(initialTravelClass);
   const [selectedSeatId, setSelectedSeatId] = useState<number | null>(null);
 
-  const seats = api.booking.getSeat.useQuery(
-    { travel_class: travelClass, trip_id: tripId },
-    { enabled: Boolean(tripId), retry: 1 },
+  useEffect(() => {
+    if (router.query.travelClass === "1") setTravelClass(1);
+    if (router.query.travelClass === "2") setTravelClass(2);
+  }, [router.query.travelClass]);
+
+  const journey = api.booking.getJourneyDetails.useQuery(
+    { trip_id: tripId, dep_stop_id: depStopId, arriv_stop_id: arrivStopId },
+    { enabled: Boolean(tripId && depStopId && arrivStopId), retry: false },
   );
 
+  const seats = api.booking.getSeat.useQuery(
+    {
+      travel_class: travelClass,
+      trip_id: tripId,
+      dep_stop_id: depStopId,
+      arriv_stop_id: arrivStopId,
+    },
+    { enabled: Boolean(tripId && depStopId && arrivStopId), retry: 1 },
+  );
+
+  const availableSeats = useMemo(() => seats.data ?? [], [seats.data]);
+
   const selectedSeat = useMemo(
-    () => seats.data?.find((seat) => seat.seat_id === selectedSeatId),
-    [seats.data, selectedSeatId],
+    () => availableSeats.find((seat) => seat.seat_id === selectedSeatId),
+    [availableSeats, selectedSeatId],
   );
 
   const review = api.booking.getReview.useQuery(
@@ -50,13 +64,13 @@ const Journey: React.FC = () => {
 
   const groupedSeats = useMemo(() => {
     const groups = new Map<number, NonNullable<typeof seats.data>>();
-    for (const seat of seats.data ?? []) {
+    for (const seat of availableSeats) {
       const group = groups.get(seat.car_number) ?? [];
       group.push(seat);
       groups.set(seat.car_number, group);
     }
     return Array.from(groups.entries()).sort(([a], [b]) => a - b);
-  }, [seats.data]);
+  }, [availableSeats]);
 
   const handleContinue = () => {
     if (!selectedSeat || !review.data) return;
@@ -69,12 +83,7 @@ const Journey: React.FC = () => {
         arrivStopId,
         seatId: selectedSeat.seat_id.toString(),
         travelClass: travelClass.toString(),
-        date,
-        departureCity,
-        arrivalCity,
-        departureTime,
-        arrivalTime,
-        duration,
+        date: journey.data?.service_date ?? date,
       },
     });
   };
@@ -89,6 +98,16 @@ const Journey: React.FC = () => {
         <main id="main-content" className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
           <BookingProgress current={3} />
 
+          {!tripId || !depStopId || !arrivStopId ? (
+            <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+              <h1 className="text-xl font-bold">Journey details are missing.</h1>
+              <p className="mt-2 text-sm">Start a new search to choose a valid train and route.</p>
+              <Link href="/" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-slate-950 px-4 font-semibold text-white">
+                Back to search
+              </Link>
+            </div>
+          ) : (
+          <>
           <div className="mb-8">
             <Link
               href={{
@@ -96,9 +115,9 @@ const Journey: React.FC = () => {
                 query: {
                   depStopId,
                   arrivStopId,
-                  departureCity,
-                  arrivalCity,
-                  startDate: date,
+                  departureCity: journey.data?.departure_stop_name ?? "",
+                  arrivalCity: journey.data?.arrival_stop_name ?? "",
+                  startDate: journey.data?.service_date ?? date,
                 },
               }}
               className="text-sm font-semibold text-blue-700 hover:underline"
@@ -109,8 +128,11 @@ const Journey: React.FC = () => {
               Choose class and seat
             </h1>
             <p className="mt-2 text-slate-500">
-              {departureCity} → {arrivalCity} · {departureTime}–{arrivalTime}
-              {duration ? " · " + duration : ""}
+              {journey.data
+                ? journey.data.departure_stop_name + " → " + journey.data.arrival_stop_name +
+                  " · " + journey.data.departure_time + "–" + journey.data.arrival_time +
+                  " · " + journey.data.duration
+                : "Loading journey details…"}
             </p>
           </div>
 
@@ -189,7 +211,7 @@ const Journey: React.FC = () => {
               </div>
             )}
 
-            {seats.data?.length === 0 && (
+            {availableSeats.length === 0 && !seats.isLoading && !seats.error && (
               <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-6 text-center text-slate-600">
                 No seats are available in this class.
               </div>
@@ -248,6 +270,8 @@ const Journey: React.FC = () => {
               Review booking
             </button>
           </div>
+          </>
+          )}
         </main>
         <Footer />
       </div>

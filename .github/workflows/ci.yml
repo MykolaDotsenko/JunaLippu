@@ -4,16 +4,18 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [fix/production-readiness]
+    branches: [main]
 
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       DATABASE_URL: "file:./ci.db"
       NEXTAUTH_URL: "http://localhost:3000"
       NEXTAUTH_SECRET: "ci-only-secret-not-for-production"
+      GOOGLE_CLIENT_ID: "ci-client-id"
+      GOOGLE_CLIENT_SECRET: "ci-client-secret"
 
     steps:
       - name: Checkout
@@ -25,11 +27,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Validate Prisma schema
         run: pnpm exec prisma validate
@@ -37,8 +39,29 @@ jobs:
       - name: Generate Prisma client
         run: pnpm exec prisma generate
 
+      - name: Create test database
+        run: pnpm exec prisma db push --force-reset
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Database invariant tests
+        run: pnpm test:db
+
+      - name: Booking integration tests
+        run: pnpm test:integration
+
       - name: Lint
         run: pnpm lint
 
       - name: Build
         run: pnpm build
+
+      - name: Seed browser test database
+        run: node tests/e2e-seed.mjs
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Mobile browser E2E
+        run: pnpm test:e2e

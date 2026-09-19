@@ -17,30 +17,27 @@ const ReviewBooking: React.FC = () => {
   const depStopId = typeof router.query.depStopId === "string" ? router.query.depStopId : "";
   const arrivStopId = typeof router.query.arrivStopId === "string" ? router.query.arrivStopId : "";
   const seatId = Number(typeof router.query.seatId === "string" ? router.query.seatId : "0");
-  const travelClass = Number(
-    typeof router.query.travelClass === "string" ? router.query.travelClass : "2",
-  ) as 1 | 2;
+  const travelClass =
+    router.query.travelClass === "1"
+      ? 1
+      : router.query.travelClass === "2"
+        ? 2
+        : null;
   const date = typeof router.query.date === "string" ? router.query.date : "";
-  const departureCity =
-    typeof router.query.departureCity === "string" ? router.query.departureCity : "";
-  const arrivalCity =
-    typeof router.query.arrivalCity === "string" ? router.query.arrivalCity : "";
-  const departureTime =
-    typeof router.query.departureTime === "string" ? router.query.departureTime : "";
-  const arrivalTime =
-    typeof router.query.arrivalTime === "string" ? router.query.arrivalTime : "";
-  const duration = typeof router.query.duration === "string" ? router.query.duration : "";
+  const effectiveTravelClass: 1 | 2 = travelClass ?? 2;
 
   const input = {
     seat_id: seatId,
     trip_id: tripId,
     dep_stop_id: depStopId,
     arriv_stop_id: arrivStopId,
-    travel_class: travelClass,
+    travel_class: effectiveTravelClass,
   };
 
   const review = api.booking.getReview.useQuery(input, {
-    enabled: Boolean(seatId && tripId && depStopId && arrivStopId),
+    enabled: Boolean(
+      seatId && tripId && depStopId && arrivStopId && travelClass,
+    ),
     retry: false,
   });
 
@@ -72,6 +69,17 @@ const ReviewBooking: React.FC = () => {
         <main id="main-content" className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
           <BookingProgress current={4} />
 
+          {!seatId || !tripId || !depStopId || !arrivStopId || !travelClass ? (
+            <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+              <h1 className="text-xl font-bold">Booking details are missing.</h1>
+              <p className="mt-2 text-sm">Start a new search to build a valid reservation.</p>
+              <Link href="/" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-slate-950 px-4 font-semibold text-white">
+                Back to search
+              </Link>
+            </div>
+          ) : (
+          <>
+
           <Link
             href={{
               pathname: "/Journey",
@@ -79,12 +87,8 @@ const ReviewBooking: React.FC = () => {
                 tripId,
                 depStopId,
                 arrivStopId,
-                date,
-                departureCity,
-                arrivalCity,
-                departureTime,
-                arrivalTime,
-                duration,
+                date: review.data?.service_date ?? date,
+                travelClass: travelClass?.toString() ?? "",
               },
             }}
             className="text-sm font-semibold text-blue-700 hover:underline"
@@ -122,7 +126,7 @@ const ReviewBooking: React.FC = () => {
                       {review.data.departure_stop_name} → {review.data.arrival_stop_name}
                     </h2>
                     <p className="mt-2 text-slate-600">
-                      {date || "Demo service date"} · {review.data.departure_time}–{review.data.arrival_time}
+                      {review.data.service_date} · {review.data.departure_time}–{review.data.arrival_time}
                     </p>
                     <p className="mt-1 text-sm text-slate-500">
                       {review.data.duration} · Train {review.data.train_number}
@@ -170,6 +174,8 @@ const ReviewBooking: React.FC = () => {
                     : "Reserve seat"}
               </button>
             </>
+          )}
+          </>
           )}
         </main>
         <Footer />

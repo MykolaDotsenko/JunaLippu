@@ -17,7 +17,7 @@ const SearchJourney: React.FC = () => {
   const stationsQuery = api.search.getStationName.useQuery(undefined, {
     retry: 1,
   });
-  const stations = stationsQuery.data ?? [];
+  const stations = useMemo(() => stationsQuery.data ?? [], [stationsQuery.data]);
 
   const [from, setFrom] = useState(
     typeof router.query.from === "string" ? router.query.from : "",
@@ -28,8 +28,9 @@ const SearchJourney: React.FC = () => {
   const [date, setDate] = useState<Date | null>(null);
 
   useEffect(() => {
-    if (typeof router.query.from === "string") setFrom(router.query.from);
-    if (typeof router.query.to === "string") setTo(router.query.to);
+    setFrom(typeof router.query.from === "string" ? router.query.from : "");
+    setTo(typeof router.query.to === "string" ? router.query.to : "");
+    setDate(null);
   }, [router.query.from, router.query.to]);
 
   const availableDatesQuery = api.search.getAvailableDates.useQuery(
@@ -58,7 +59,15 @@ const SearchJourney: React.FC = () => {
   );
 
   const invalidRoute = Boolean(from && to && from === to);
-  const canSearch = Boolean(from && to && date && !invalidRoute);
+  const selectedDateIsAvailable = Boolean(
+    date &&
+      availableDates.some(
+        (availableDate) => toLocalDateString(availableDate) === toLocalDateString(date),
+      ),
+  );
+  const canSearch = Boolean(
+    from && to && date && !invalidRoute && selectedDateIsAvailable,
+  );
 
   const swapStations = () => {
     setFrom(to);
@@ -115,7 +124,7 @@ const SearchJourney: React.FC = () => {
               <p className="mt-1 text-sm text-slate-500">One way · 1 passenger</p>
             </div>
             <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
-              Demo data · 2024
+              Demo timetable
             </span>
           </div>
 

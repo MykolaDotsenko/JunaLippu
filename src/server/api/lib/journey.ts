@@ -9,11 +9,13 @@ export const minutesToDuration = (minutes: number) => {
   return `${hours} h ${remainder.toString().padStart(2, "0")} min`;
 };
 
-export const calculateJourneyPrice = (
+export const calculateJourneyPriceCents = (
   durationMinutes: number,
-  travelClass: number,
+  travelClass: 1 | 2,
 ) => {
-  const basePrice = (durationMinutes / 60) * 120 * 0.16;
+  const basePriceCents = (durationMinutes / 60) * 120 * 16;
   const classMultiplier = travelClass === 1 ? 1.5 : 1;
-  return Number((basePrice * classMultiplier).toFixed(2));
+  return Math.round(basePriceCents * classMultiplier);
 };
+
+export const centsToEuros = (priceCents: number) => priceCents / 100;

@@ -40,7 +40,7 @@ const BookingJourney: React.FC = () => {
               </p>
             </div>
             <span className="w-fit rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
-              Historical demo timetable
+              Demo timetable
             </span>
           </div>
 

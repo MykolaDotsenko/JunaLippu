@@ -13,7 +13,6 @@ import { type Session } from "next-auth";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-import { getServerAuthSession } from "~/server/auth";
 import { db } from "~/server/db";
 
 /**
@@ -53,13 +52,10 @@ const createInnerTRPCContext = (opts: CreateContextOptions) => {
  */
 export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   const { req, res } = opts;
-
-  // Get the session from the server using the getServerSession wrapper function
+  const { getServerAuthSession } = await import("~/server/auth");
   const session = await getServerAuthSession({ req, res });
 
-  return createInnerTRPCContext({
-    session,
-  });
+  return createInnerTRPCContext({ session });
 };
 
 /**

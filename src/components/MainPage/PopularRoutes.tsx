@@ -13,7 +13,7 @@ const PopularRoutes: React.FC = () => (
       <h2 id="popular-routes-title" className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
         Popular demo routes
       </h2>
-      <p className="mt-2 text-slate-600">Prefill a route, then choose an available 2024 service date.</p>
+      <p className="mt-2 text-slate-600">Prefill a route, then choose an available service date.</p>
     </div>
 
     <div className="grid gap-4 sm:grid-cols-2">

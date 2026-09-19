@@ -60,7 +60,7 @@ const TripOptions: React.FC = () => {
       <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center">
         <h2 className="font-semibold text-slate-950">No journeys found</h2>
         <p className="mt-2 text-sm text-slate-500">
-          Try another 2024 service date or change your route.
+          Try another service date or change your route.
         </p>
         <Link
           href="/"
