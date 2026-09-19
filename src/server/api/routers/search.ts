@@ -19,6 +19,30 @@ const searchInput = routeInput.extend({
 });
 
 export const searchRouter = createTRPCRouter({
+  getRouteContext: publicProcedure
+    .input(routeInput)
+    .query(async ({ input, ctx }) => {
+      const [departure, arrival] = await Promise.all([
+        ctx.db.stop.findUnique({
+          where: { stop_id: input.dep_stop_id },
+          select: { stop_id: true, stop_name: true },
+        }),
+        ctx.db.stop.findUnique({
+          where: { stop_id: input.arriv_stop_id },
+          select: { stop_id: true, stop_name: true },
+        }),
+      ]);
+
+      if (!departure || !arrival || departure.stop_id === arrival.stop_id) {
+        return null;
+      }
+
+      return {
+        departure_stop_name: departure.stop_name,
+        arrival_stop_name: arrival.stop_name,
+      };
+    }),
+
   getStationName: publicProcedure.query(({ ctx }) =>
     ctx.db.stop.findMany({
       select: {
