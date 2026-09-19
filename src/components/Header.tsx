@@ -51,8 +51,8 @@ const Header: React.FC = () => {
         <div className="border-t border-slate-200 bg-slate-50">
           <div className="mx-auto max-w-6xl px-4 py-4 text-sm leading-6 text-slate-600 sm:px-6">
             JunaLippu is a portfolio railway-booking demo built with Next.js,
-            tRPC, Prisma and NextAuth. It uses historical 2024 sample timetable
-            data and does not process real payments.
+            tRPC, Prisma and NextAuth. It uses a historical sample timetable and
+            does not process real payments.
           </div>
         </div>
       )}
