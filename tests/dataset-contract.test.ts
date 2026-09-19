@@ -44,8 +44,9 @@ const stopCalls: StopCall[] = readRows("7_Stop_time.csv").map(
   }),
 );
 
-
-const trainIds = new Set(readRows("1_Train.csv").map(([trainId]) => trainId ?? ""));
+const trainIds = new Set(
+  readRows("1_Train.csv").map(([trainId]) => trainId ?? ""),
+);
 const carIds = new Set(readRows("2_Car.csv").map(([carId]) => carId ?? ""));
 const compositionRows = readRows("4_Train_composition.csv");
 
@@ -61,7 +62,8 @@ for (const calls of callsByTrip.values()) {
 
 void test("legacy CSV referential anomalies stay explicit and bounded", () => {
   const orphanCompositions = compositionRows.filter(
-    ([trainId, carId]) => !trainIds.has(trainId ?? "") || !carIds.has(carId ?? ""),
+    ([trainId, carId]) =>
+      !trainIds.has(trainId ?? "") || !carIds.has(carId ?? ""),
   );
   assert.equal(orphanCompositions.length, 2);
   assert.deepEqual(
