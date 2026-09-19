@@ -43,3 +43,6 @@ yarn-error.log*
 
 #jetbrains
 /.idea/
+
+# generated Prisma client
+/src/generated/prisma/
