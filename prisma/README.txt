@@ -8,7 +8,10 @@ Database setup
    the database and prisma/schema.prisma disagree.
 
    For a database that predates the migrations (created with `db push` or
-   by the CSV import below), record the baseline once first:
+   populated by the CSV import below), verify it matches schema.prisma first:
+   pnpm exec prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --exit-code
+
+   Only when that reports no drift, record the baseline once:
    pnpm exec prisma migrate resolve --applied 0_init
 
 2) Generate Prisma Client:
