@@ -13,9 +13,25 @@ import {
   timeToMinutes,
 } from "../src/server/api/lib/journey";
 
-void test("timeToMinutes parses timetable times", () => {
+void test("timeToMinutes parses GTFS timetable times", () => {
   assert.equal(timeToMinutes("07:25:00"), 445);
-  assert.equal(timeToMinutes("09:26:00"), 566);
+  assert.equal(timeToMinutes("7:05:00"), 425);
+  assert.equal(timeToMinutes("31:00:00"), 1860);
+});
+
+void test("timeToMinutes rejects malformed GTFS times", () => {
+  for (const value of [
+    "",
+    "07",
+    "07:25",
+    "07:99:00",
+    "07:25:60",
+    "07:25:garbage",
+    "-1:00:00",
+    " 07:25:00",
+  ]) {
+    assert.equal(timeToMinutes(value), null, value);
+  }
 });
 
 void test("minutesToDuration formats compact journey durations", () => {
@@ -64,6 +80,7 @@ void test("journeyDurationMinutes rejects an arrival before its departure", () =
 void test("journeyDurationMinutes rejects unparsable times", () => {
   assert.equal(journeyDurationMinutes("not-a-time", "09:26:00"), null);
   assert.equal(journeyDurationMinutes("07:25:00", "oops"), null);
+  assert.equal(journeyDurationMinutes("07:99:00", "09:26:00"), null);
 });
 
 void test("pickJourneyStops pairs the earliest valid departure and arrival", () => {
