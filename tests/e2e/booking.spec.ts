@@ -27,10 +27,7 @@ test("homepage search reaches server-verified review", async ({ page }) => {
 
   const dateInput = page.getByLabel("Service date");
   await expect(dateInput).toBeEnabled();
-  await dateInput.click();
-  await page
-    .locator(".react-datepicker__day--006:not(.react-datepicker__day--outside-month)")
-    .click();
+  await dateInput.selectOption("2024-05-06");
 
   await page.getByRole("button", { name: "Search trains" }).click();
 
