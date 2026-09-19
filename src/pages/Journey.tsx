@@ -76,8 +76,7 @@ const Journey: React.FC = () => {
         arrivStopId,
         seatId: selectedSeat.seat_id.toString(),
         travelClass: travelClass.toString(),
-        date,
-        travelClass: travelClass.toString(),
+        date: journey.data?.service_date ?? date,
       },
     });
   };
@@ -92,6 +91,16 @@ const Journey: React.FC = () => {
         <main id="main-content" className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
           <BookingProgress current={3} />
 
+          {!tripId || !depStopId || !arrivStopId ? (
+            <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+              <h1 className="text-xl font-bold">Journey details are missing.</h1>
+              <p className="mt-2 text-sm">Start a new search to choose a valid train and route.</p>
+              <Link href="/" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-slate-950 px-4 font-semibold text-white">
+                Back to search
+              </Link>
+            </div>
+          ) : (
+          <>
           <div className="mb-8">
             <Link
               href={{
@@ -254,6 +263,8 @@ const Journey: React.FC = () => {
               Review booking
             </button>
           </div>
+          </>
+          )}
         </main>
         <Footer />
       </div>
