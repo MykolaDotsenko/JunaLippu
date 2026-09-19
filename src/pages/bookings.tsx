@@ -4,10 +4,12 @@ import Link from "next/link";
 
 import PageLayout from "~/components/PageLayout";
 import ReservationSummary from "~/components/ReservationSummary";
+import { useGoogleAuthStatus } from "~/hooks/useGoogleAuthStatus";
 import { api } from "~/utils/api";
 
 const BookingsPage = () => {
   const { status } = useSession();
+  const googleAuthStatus = useGoogleAuthStatus();
   const isAuthenticated = status === "authenticated";
 
   const bookings = api.booking.listReservations.useInfiniteQuery(
@@ -46,10 +48,19 @@ const BookingsPage = () => {
           </p>
           <button
             type="button"
-            onClick={() => void signIn("google", { callbackUrl: "/bookings" })}
+            onClick={() => {
+              if (googleAuthStatus === "available") {
+                void signIn("google", { callbackUrl: "/bookings" });
+              }
+            }}
+            disabled={googleAuthStatus !== "available"}
             className="mt-5 min-h-12 w-full rounded-xl bg-blue-600 px-6 font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 sm:w-auto"
           >
-            Continue with Google
+            {googleAuthStatus === "unavailable"
+              ? "Google sign-in unavailable"
+              : googleAuthStatus === "loading"
+                ? "Checking sign-in…"
+                : "Continue with Google"}
           </button>
         </div>
       )}
