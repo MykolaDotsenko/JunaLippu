@@ -1,16 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/router";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 
 import { api } from "~/utils/api";
-
-const toLocalDateString = (date: Date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
+import { formatServiceDate } from "~/utils/serviceDate";
 
 const SearchJourney: React.FC = () => {
   const router = useRouter();
@@ -28,13 +21,15 @@ const SearchJourney: React.FC = () => {
   const [to, setTo] = useState(
     typeof router.query.to === "string" ? router.query.to : "",
   );
-  const [date, setDate] = useState<Date | null>(null);
+  const [date, setDate] = useState("");
 
   useEffect(() => {
     setFrom(typeof router.query.from === "string" ? router.query.from : "");
     setTo(typeof router.query.to === "string" ? router.query.to : "");
-    setDate(null);
+    setDate("");
   }, [router.query.from, router.query.to]);
+
+  const invalidRoute = Boolean(from && to && from === to);
 
   const availableDatesQuery = api.search.getAvailableDates.useQuery(
     {
@@ -42,19 +37,24 @@ const SearchJourney: React.FC = () => {
       arriv_stop_id: to,
     },
     {
-      enabled: Boolean(from && to && from !== to),
+      enabled: Boolean(from && to) && !invalidRoute,
       retry: 1,
     },
   );
 
   const availableDates = useMemo(
-    () =>
-      (availableDatesQuery.data ?? []).map((value) => {
-        const [year, month, day] = value.split("-").map(Number);
-        return new Date(year ?? 2024, (month ?? 1) - 1, day ?? 1);
-      }),
+    () => availableDatesQuery.data ?? [],
     [availableDatesQuery.data],
   );
+
+  const demoDateRange = useMemo(() => {
+    const first = availableDates.at(0);
+    const last = availableDates.at(-1);
+    if (!first || !last) return null;
+    return first === last
+      ? formatServiceDate(first)
+      : `${formatServiceDate(first)} – ${formatServiceDate(last)}`;
+  }, [availableDates]);
 
   const stationNameById = useMemo(
     () =>
@@ -62,35 +62,26 @@ const SearchJourney: React.FC = () => {
     [stations],
   );
 
-  const demoDateRange = useMemo(() => {
-    const dates = availableDatesQuery.data ?? [];
-    const first = dates.at(0);
-    const last = dates.at(-1);
-    if (!first || !last) return null;
-    return first === last ? first : `${first} – ${last}`;
-  }, [availableDatesQuery.data]);
+  const datePlaceholder =
+    !from || !to
+      ? "Choose route first"
+      : availableDatesQuery.isLoading
+        ? "Loading dates…"
+        : availableDates.length === 0
+          ? "No dates available"
+          : "Choose service date";
 
-  const invalidRoute = Boolean(from && to && from === to);
-  const selectedDateIsAvailable = Boolean(
-    date &&
-      availableDates.some(
-        (availableDate) =>
-          toLocalDateString(availableDate) === toLocalDateString(date),
-      ),
-  );
-  const canSearch = Boolean(
-    from && to && date && !invalidRoute && selectedDateIsAvailable,
-  );
+  const canSearch = Boolean(from && to && date && !invalidRoute);
 
   const swapStations = () => {
     setFrom(to);
     setTo(from);
-    setDate(null);
+    setDate("");
   };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!canSearch || !date) return;
+    if (!canSearch) return;
 
     void router.push({
       pathname: "/trains",
@@ -99,7 +90,7 @@ const SearchJourney: React.FC = () => {
         arrivStopId: to,
         departureCity: stationNameById.get(from) ?? from,
         arrivalCity: stationNameById.get(to) ?? to,
-        startDate: toLocalDateString(date),
+        startDate: date,
       },
     });
   };
@@ -109,10 +100,13 @@ const SearchJourney: React.FC = () => {
       id="search"
       className="relative overflow-hidden rounded-3xl bg-slate-950 shadow-xl"
     >
-      <div
-        className="absolute inset-0 bg-cover bg-center opacity-50"
-        style={{ backgroundImage: "url('/images/fiska.jpg')" }}
-        aria-hidden="true"
+      <Image
+        src="/images/fiska.jpg"
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover opacity-50"
       />
       <div
         className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-slate-900/50"
@@ -176,7 +170,7 @@ const SearchJourney: React.FC = () => {
                 value={from}
                 onChange={(event) => {
                   setFrom(event.target.value);
-                  setDate(null);
+                  setDate("");
                 }}
                 disabled={stationsQuery.isLoading}
                 className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
@@ -208,7 +202,7 @@ const SearchJourney: React.FC = () => {
                 value={to}
                 onChange={(event) => {
                   setTo(event.target.value);
-                  setDate(null);
+                  setDate("");
                 }}
                 disabled={stationsQuery.isLoading}
                 className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
@@ -227,27 +221,19 @@ const SearchJourney: React.FC = () => {
             <span className="mb-2 block text-sm font-semibold text-slate-700">
               Service date
             </span>
-            <DatePicker
-              selected={date}
-              onChange={(value: Date | null) => setDate(value)}
-              dateFormat="dd MMM yyyy"
-              includeDates={availableDates}
-              openToDate={availableDates.at(0)}
-              disabled={
-                !from || !to || invalidRoute || availableDatesQuery.isLoading
-              }
-              placeholderText={
-                !from || !to
-                  ? "Choose route first"
-                  : availableDatesQuery.isLoading
-                    ? "Loading dates…"
-                    : availableDates.length === 0
-                      ? "No dates available"
-                      : "Choose service date"
-              }
-              wrapperClassName="w-full"
-              className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-            />
+            <select
+              value={date}
+              onChange={(event) => setDate(event.target.value)}
+              disabled={availableDates.length === 0}
+              className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100 disabled:text-slate-400"
+            >
+              <option value="">{datePlaceholder}</option>
+              {availableDates.map((serviceDate) => (
+                <option key={serviceDate} value={serviceDate}>
+                  {formatServiceDate(serviceDate)}
+                </option>
+              ))}
+            </select>
           </label>
 
           {demoDateRange && (

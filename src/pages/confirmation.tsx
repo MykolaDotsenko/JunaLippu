@@ -2,6 +2,8 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 
+import LoadingPanel from "~/components/LoadingPanel";
+import MissingDetails from "~/components/MissingDetails";
 import PageLayout from "~/components/PageLayout";
 import ReservationSummary from "~/components/ReservationSummary";
 import { api } from "~/utils/api";
@@ -19,21 +21,21 @@ const ConfirmationPage: React.FC = () => {
     { enabled: reservationId > 0, retry: false },
   );
 
+  if (!router.isReady) {
+    return (
+      <PageLayout title="Reservation confirmed · JunaLippu" width="sm">
+        <LoadingPanel className="h-80" />
+      </PageLayout>
+    );
+  }
+
   return (
     <PageLayout title="Reservation confirmed · JunaLippu" width="sm">
       {reservationId <= 0 && (
-        <div
-          role="alert"
-          className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900"
-        >
-          <h1 className="text-xl font-bold">Reservation number is missing.</h1>
-          <Link
-            href="/"
-            className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-slate-950 px-4 font-semibold text-white"
-          >
-            Back to home
-          </Link>
-        </div>
+        <MissingDetails
+          title="Reservation number is missing."
+          linkLabel="Back to home"
+        />
       )}
 
       {reservationId > 0 && reservation.isLoading && (

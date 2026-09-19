@@ -3,6 +3,8 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 
 import BookingProgress from "~/components/BookingProgress";
+import LoadingPanel from "~/components/LoadingPanel";
+import MissingDetails from "~/components/MissingDetails";
 import PageLayout from "~/components/PageLayout";
 import { api, type RouterOutputs } from "~/utils/api";
 
@@ -94,26 +96,24 @@ const SeatsPage: React.FC = () => {
     });
   };
 
+  if (!router.isReady) {
+    return (
+      <PageLayout title="Choose a seat · JunaLippu" width="xl">
+        <BookingProgress current={3} />
+        <LoadingPanel className="h-96" />
+      </PageLayout>
+    );
+  }
+
   return (
     <PageLayout title="Choose a seat · JunaLippu" width="xl">
       <BookingProgress current={3} />
 
       {!hasSegment ? (
-        <div
-          role="alert"
-          className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900"
-        >
-          <h1 className="text-xl font-bold">Journey details are missing.</h1>
-          <p className="mt-2 text-sm">
-            Start a new search to choose a valid train and route.
-          </p>
-          <Link
-            href="/"
-            className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-slate-950 px-4 font-semibold text-white"
-          >
-            Back to search
-          </Link>
-        </div>
+        <MissingDetails
+          title="Journey details are missing."
+          description="Start a new search to choose a valid train and route."
+        />
       ) : (
         <>
           <div className="mb-8">

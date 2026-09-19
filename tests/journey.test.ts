@@ -51,9 +51,14 @@ void test("journeyDurationMinutes measures same-day journeys", () => {
 });
 
 void test("journeyDurationMinutes handles journeys past midnight", () => {
-  assert.equal(journeyDurationMinutes("23:50:00", "00:30:00"), 40);
-  assert.equal(journeyDurationMinutes("22:00:00", "06:00:00"), 480);
   assert.equal(journeyDurationMinutes("23:50:00", "24:30:00"), 40);
+  assert.equal(journeyDurationMinutes("22:00:00", "30:00:00"), 480);
+  assert.equal(journeyDurationMinutes("23:00:00", "31:00:00"), 480);
+});
+
+void test("journeyDurationMinutes rejects an arrival before its departure", () => {
+  assert.equal(journeyDurationMinutes("23:50:00", "00:30:00"), null);
+  assert.equal(journeyDurationMinutes("12:00:00", "11:00:00"), null);
 });
 
 void test("journeyDurationMinutes rejects unparsable times", () => {

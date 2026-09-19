@@ -67,7 +67,7 @@ const seed = async () => {
     calls: [
       passingCall(HELSINKI, "21:00:00", 0),
       passingCall(TAMPERE, "23:00:00", 1),
-      passingCall(OULU, "03:00:00", 2),
+      passingCall(OULU, "27:00:00", 2),
     ],
   });
 
@@ -175,6 +175,7 @@ void test("getSchedule returns priced journeys ordered by departure time", async
   assert.equal(morning?.duration, "6 h 00 min");
   assert.ok((morning?.min_price ?? 0) > 0);
 
+  assert.equal(evening?.arrival_time, "27:00:00");
   assert.equal(evening?.duration_minutes, 360);
   assert.equal(evening?.min_price, morning?.min_price);
 });

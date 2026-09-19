@@ -1,7 +1,15 @@
 Database setup
 
 1) Create/update the SQLite schema:
-   pnpm prisma db push
+   pnpm db:migrate
+
+   The schema is owned by prisma/migrations. Do not use `prisma db push`:
+   it applies the schema without recording a migration, and CI fails when
+   the database and prisma/schema.prisma disagree.
+
+   For a database that predates the migrations (created with `db push` or
+   by the CSV import below), record the baseline once first:
+   pnpm exec prisma migrate resolve --applied 0_init
 
 2) Generate Prisma Client:
    pnpm prisma generate
@@ -38,4 +46,4 @@ To import with sqlite3:
 Authentication/reservation tables and ReservationSegment are intentionally empty after dataset import. They are populated by application usage.
 
 For automated CI tests the repository uses a fresh SQLite database created with:
-   pnpm exec prisma db push --force-reset
+   pnpm db:migrate

@@ -50,7 +50,8 @@ The server:
 - loads journey time, service date and train details from the database;
 - validates that the selected seat belongs to the selected train and travel class;
 - re-checks seat availability on review and reservation;
-- calculates journey duration, including journeys that run past midnight;
+- calculates journey duration, rejecting any segment whose arrival precedes its
+  departure (the dataset uses GTFS hour notation past 24:00 for overnight runs);
 - calculates money in integer cents;
 - creates the reservation for the authenticated user;
 - reloads the confirmation from the authenticated reservation record;
@@ -143,6 +144,18 @@ pnpm db:migrate
 The schema is owned by the migrations in `prisma/migrations`. Use
 `pnpm exec prisma migrate dev --name what_changed` for schema changes; CI fails
 when `schema.prisma` and the migrations disagree.
+
+#### Existing databases
+
+A database created before migrations existed — with `prisma db push`, including
+one imported from the CSV dataset — already has the tables, so
+`prisma migrate deploy` stops with `P3005: The database schema is not empty`.
+Record the baseline as applied once, then migrate normally afterwards:
+
+```bash
+pnpm exec prisma migrate resolve --applied 0_init
+pnpm db:migrate
+```
 
 The historical railway CSV files are stored in `prisma/`. See `prisma/README.txt` for the legacy import instructions.
 

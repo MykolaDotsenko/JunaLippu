@@ -4,7 +4,6 @@ export const SECOND_CLASS_FARE_CENTS_PER_HOUR = 1920;
 export const FIRST_CLASS_FARE_MULTIPLIER = 1.5;
 
 const MINUTES_PER_HOUR = 60;
-const MINUTES_PER_DAY = 24 * MINUTES_PER_HOUR;
 
 export const timeToMinutes = (value: string) => {
   const [hours = "0", minutes = "0"] = value.split(":");
@@ -21,7 +20,7 @@ export const journeyDurationMinutes = (
   if (!Number.isFinite(departure) || !Number.isFinite(arrival)) return null;
 
   const difference = arrival - departure;
-  return difference < 0 ? difference + MINUTES_PER_DAY : difference;
+  return difference < 0 ? null : difference;
 };
 
 export const minutesToDuration = (minutes: number) => {

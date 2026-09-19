@@ -98,13 +98,45 @@ test("the search form only offers dates the demo dataset covers", async ({
 }) => {
   await page.goto("/");
 
+  const serviceDate = page.getByLabel("Service date");
+  await expect(serviceDate).toBeDisabled();
+
   await page.getByLabel("From").selectOption("E2EA");
   await page.getByLabel("To").selectOption("E2EC");
 
   await expect(
-    page.getByText(/Demo timetable covers 2024-05-06/),
+    page.getByText(/Demo timetable covers 06 May 2024/),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Search trains" }),
   ).toBeDisabled();
+
+  await expect(serviceDate).toBeEnabled();
+  await expect(serviceDate.locator("option")).toHaveText([
+    "Choose service date",
+    "06 May 2024",
+  ]);
+
+  await serviceDate.selectOption("2024-05-06");
+  await expect(
+    page.getByRole("button", { name: "Search trains" }),
+  ).toBeEnabled();
+
+  await page.getByRole("button", { name: "Search trains" }).click();
+  await expect(page).toHaveURL(/\/trains\?/);
+  await expect(
+    page.getByRole("heading", { name: "Alpha → Gamma" }),
+  ).toBeVisible();
+});
+
+test("a valid deep link never serves the missing-details state", async ({
+  request,
+}) => {
+  const response = await request.get(
+    "/seats?tripId=e2e-trip&depStopId=E2EA&arrivStopId=E2EC",
+  );
+  const html = await response.text();
+
+  expect(html).not.toContain("Journey details are missing.");
+  expect(html).toContain('aria-label="Loading"');
 });
