@@ -1,35 +1,41 @@
-Before seeding:
+Database setup
 
-1) Run command: pnpm prisma db push - this creates a database according to a schema
-2) Run command: pnpm prisma generate - this generates Prisma Client for interaction with database
-3) Run command: pnpm prisma studio - this opens Prisma Studio to see data
-4) Check in prisma studio that you have all tables mentioned in prisma.schema (they are empty)
-5) To populate tables with data follow seeding instruction below. 
+1) Create/update the SQLite schema:
+   pnpm prisma db push
 
-Seeding instructions:
+2) Generate Prisma Client:
+   pnpm prisma generate
 
-1) Make sure you have installed sqlite3.
+3) Optional: inspect the database:
+   pnpm prisma studio
 
-2) Open a command prompt. Set directory to prisma folder inside junalippu project.
+Legacy CSV import
 
-The next actions are inside Command prompt:
+The railway dataset is stored in prisma/*.csv. The Trip CSV now has four columns:
 
-    - Run sqlite3 command;
-    - To open a database run a command: .open db.sqlite
-    - Run command: .mode csv 
+trip_id,route_id,service_id,service_date
 
-    - Run the following commands one by one:
+where service_date is an explicit YYYY-MM-DD value used by application queries.
 
-.import path\prisma\1_Train.csv Train
-.import path\prisma\2_Car.csv Car
-.import path\prisma\3_Seat.csv Seat
-.import path\prisma\4_Train_composition.csv Train_composition
-.import path\prisma\5_Trip.csv Trip
-.import path\prisma\6_Route.csv Route
-.import path\prisma\7_Stop_time.csv Stop_time
-.import path\prisma\8_Stop.csv Stop
-.import path\prisma\9_Calendar.csv Calendar
+To import with sqlite3:
 
-4) After that you should be able to see data in Prisma Studio.
+1) Open the prisma directory.
+2) Start sqlite3 and open db.sqlite.
+3) Enable CSV mode:
+   .mode csv
+4) Import in dependency order:
 
-5) Some table are initially empty, that is normal. They will be filled by user interaction with an application.
+.import path/prisma/1_Train.csv Train
+.import path/prisma/2_Car.csv Car
+.import path/prisma/3_Seat.csv Seat
+.import path/prisma/4_Train_composition.csv Train_composition
+.import path/prisma/6_Route.csv Route
+.import path/prisma/9_Calendar.csv Calendar
+.import path/prisma/5_Trip.csv Trip
+.import path/prisma/8_Stop.csv Stop
+.import path/prisma/7_Stop_time.csv Stop_time
+
+Authentication/reservation tables and ReservationSegment are intentionally empty after dataset import. They are populated by application usage.
+
+For automated CI tests the repository uses a fresh SQLite database created with:
+   pnpm exec prisma db push --force-reset
