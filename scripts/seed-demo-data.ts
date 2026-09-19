@@ -39,13 +39,13 @@ const seats = readCsvRows(prismaFile("3_Seat.csv")).map(
   }),
 );
 
-const compositions = readCsvRows(prismaFile("4_Train_composition.csv")).map(
-  ([trainId, carId, carNumber]) => ({
-    train_id: asInteger(trainId, "Train_composition.train_id"),
-    car_id: asInteger(carId, "Train_composition.car_id"),
-    car_number: asInteger(carNumber, "Train_composition.car_number"),
-  }),
-);
+const rawCompositions = readCsvRows(
+  prismaFile("4_Train_composition.csv"),
+).map(([trainId, carId, carNumber]) => ({
+  train_id: asInteger(trainId, "Train_composition.train_id"),
+  car_id: asInteger(carId, "Train_composition.car_id"),
+  car_number: asInteger(carNumber, "Train_composition.car_number"),
+}));
 
 const trips = readCsvRows(prismaFile("5_Trip.csv")).map(
   ([tripId, routeId, serviceId, serviceDate]) => ({
@@ -64,7 +64,7 @@ const routes = readCsvRows(prismaFile("6_Route.csv")).map(
   }),
 );
 
-const stopTimes = readCsvRows(prismaFile("7_Stop_time.csv")).map(
+const rawStopTimes = readCsvRows(prismaFile("7_Stop_time.csv")).map(
   ([stopId, tripId, arrivalTime, departureTime, stopSequence]) => ({
     stop_id: stopId ?? "",
     trip_id: tripId ?? "",
@@ -101,6 +101,70 @@ const calendars = readCsvRows(prismaFile("9_Calendar.csv")).map(
     saturday: asBoolean(saturday, "Calendar.saturday"),
     sunday: asBoolean(sunday, "Calendar.sunday"),
   }),
+);
+
+const trainIds = new Set(trains.map((train) => train.train_id));
+const carIds = new Set(cars.map((car) => car.car_id));
+const routeIds = new Set(routes.map((route) => route.route_id));
+const tripIds = new Set(trips.map((trip) => trip.trip_id));
+const stopIds = new Set(stops.map((stop) => stop.stop_id));
+const calendarIds = new Set(calendars.map((calendar) => calendar.service_id));
+
+const invalidSeatReferences = seats.filter((seat) => !carIds.has(seat.car_id));
+const invalidRouteReferences = routes.filter(
+  (route) => !trainIds.has(route.train_id),
+);
+const invalidTripReferences = trips.filter(
+  (trip) =>
+    !routeIds.has(trip.route_id) || !calendarIds.has(trip.service_id),
+);
+
+if (
+  invalidSeatReferences.length > 0 ||
+  invalidRouteReferences.length > 0 ||
+  invalidTripReferences.length > 0
+) {
+  throw new Error(
+    "Bundled timetable contains an unexpected core foreign-key violation.",
+  );
+}
+
+const orphanCompositions = rawCompositions.filter(
+  (composition) =>
+    !trainIds.has(composition.train_id) || !carIds.has(composition.car_id),
+);
+if (
+  orphanCompositions.length !== 2 ||
+  orphanCompositions.some(
+    (composition) =>
+      composition.train_id !== 110002 || !carIds.has(composition.car_id),
+  )
+) {
+  throw new Error(
+    "Bundled timetable composition anomalies changed; review the source data before seeding.",
+  );
+}
+const compositions = rawCompositions.filter(
+  (composition) =>
+    trainIds.has(composition.train_id) && carIds.has(composition.car_id),
+);
+
+const orphanStopTimes = rawStopTimes.filter(
+  (stopTime) =>
+    !stopIds.has(stopTime.stop_id) || !tripIds.has(stopTime.trip_id),
+);
+if (
+  orphanStopTimes.length !== 6 ||
+  orphanStopTimes.some(
+    (stopTime) => stopTime.stop_id !== "VKA_0" || !tripIds.has(stopTime.trip_id),
+  )
+) {
+  throw new Error(
+    "Bundled timetable stop-time anomalies changed; review the source data before seeding.",
+  );
+}
+const stopTimes = rawStopTimes.filter(
+  (stopTime) => stopIds.has(stopTime.stop_id) && tripIds.has(stopTime.trip_id),
 );
 
 const expectedCounts = {
@@ -152,6 +216,10 @@ try {
       );
     }
   } else {
+    console.warn(
+      "Normalizing known legacy CSV anomalies: skipping 2 orphan train-composition rows and 6 stop-time rows for missing stop VKA_0.",
+    );
+
     await db.$transaction(
       async (tx) => {
         await insertInChunks(trains, (data) => tx.train.createMany({ data }));
@@ -183,7 +251,7 @@ try {
     }
 
     console.log(
-      `Loaded ${after.trip} trips, ${after.stop} stations and ${after.stopTime} stop calls.`,
+      `Loaded ${after.trip} trips, ${after.stop} stations and ${after.stopTime} valid stop calls.`,
     );
   }
 } finally {
