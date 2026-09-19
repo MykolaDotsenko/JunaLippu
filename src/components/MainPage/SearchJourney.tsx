@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -27,6 +27,31 @@ const SearchJourney: React.FC = () => {
   );
   const [date, setDate] = useState<Date | null>(null);
 
+  useEffect(() => {
+    if (typeof router.query.from === "string") setFrom(router.query.from);
+    if (typeof router.query.to === "string") setTo(router.query.to);
+  }, [router.query.from, router.query.to]);
+
+  const availableDatesQuery = api.search.getAvailableDates.useQuery(
+    {
+      dep_stop_id: from,
+      arriv_stop_id: to,
+    },
+    {
+      enabled: Boolean(from && to && from !== to),
+      retry: 1,
+    },
+  );
+
+  const availableDates = useMemo(
+    () =>
+      (availableDatesQuery.data ?? []).map((value) => {
+        const [year, month, day] = value.split("-").map(Number);
+        return new Date(year ?? 2024, (month ?? 1) - 1, day ?? 1);
+      }),
+    [availableDatesQuery.data],
+  );
+
   const stationNameById = useMemo(
     () => new Map(stations.map((station) => [station.stop_id, station.stop_name])),
     [stations],
@@ -38,6 +63,7 @@ const SearchJourney: React.FC = () => {
   const swapStations = () => {
     setFrom(to);
     setTo(from);
+    setDate(null);
   };
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -111,7 +137,7 @@ const SearchJourney: React.FC = () => {
               <span className="mb-2 block text-sm font-semibold text-slate-700">From</span>
               <select
                 value={from}
-                onChange={(event) => setFrom(event.target.value)}
+                onChange={(event) => { setFrom(event.target.value); setDate(null); }}
                 disabled={stationsQuery.isLoading}
                 className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
               >
@@ -138,7 +164,7 @@ const SearchJourney: React.FC = () => {
               <span className="mb-2 block text-sm font-semibold text-slate-700">To</span>
               <select
                 value={to}
-                onChange={(event) => setTo(event.target.value)}
+                onChange={(event) => { setTo(event.target.value); setDate(null); }}
                 disabled={stationsQuery.isLoading}
                 className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
               >
@@ -158,11 +184,27 @@ const SearchJourney: React.FC = () => {
               selected={date}
               onChange={(value: Date | null) => setDate(value)}
               dateFormat="dd MMM yyyy"
-              placeholderText="Choose a 2024 demo date"
+              includeDates={availableDates}
+              disabled={!from || !to || invalidRoute || availableDatesQuery.isLoading}
+              placeholderText={
+                !from || !to
+                  ? "Choose route first"
+                  : availableDatesQuery.isLoading
+                    ? "Loading dates…"
+                    : availableDates.length === 0
+                      ? "No dates available"
+                      : "Choose service date"
+              }
               wrapperClassName="w-full"
               className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
             />
           </label>
+
+          {from && to && !invalidRoute && availableDatesQuery.isSuccess && availableDates.length === 0 && (
+            <p role="status" className="mt-3 text-sm font-medium text-amber-700">
+              No direct demo journeys are available for this route.
+            </p>
+          )}
 
           {invalidRoute && (
             <p role="alert" className="mt-3 text-sm font-medium text-red-700">
