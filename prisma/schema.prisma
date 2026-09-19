@@ -75,6 +75,7 @@ model Reservation {
   arrival_stop   Stop @relation("ReservationArrivalStop", fields: [arriv_stop_id], references: [stop_id])
   segments       ReservationSegment[]
 
+  @@unique([reservation_id, trip_id, seat_id])
   @@index([user_id])
   @@index([trip_id, seat_id])
 }
@@ -85,7 +86,11 @@ model ReservationSegment {
   seat_id        Int
   stop_sequence  Int
 
-  reservation Reservation @relation(fields: [reservation_id], references: [reservation_id], onDelete: Cascade)
+  reservation Reservation @relation(
+    fields: [reservation_id, trip_id, seat_id],
+    references: [reservation_id, trip_id, seat_id],
+    onDelete: Cascade
+  )
 
   @@id([reservation_id, stop_sequence])
   @@unique([trip_id, seat_id, stop_sequence])
