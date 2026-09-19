@@ -4,10 +4,17 @@ export const SECOND_CLASS_FARE_CENTS_PER_HOUR = 1920;
 export const FIRST_CLASS_FARE_MULTIPLIER = 1.5;
 
 const MINUTES_PER_HOUR = 60;
+const GTFS_TIME = /^(\d+):([0-5]\d):([0-5]\d)$/;
 
-export const timeToMinutes = (value: string) => {
-  const [hours = "0", minutes = "0"] = value.split(":");
-  return Number(hours) * MINUTES_PER_HOUR + Number(minutes);
+export const timeToMinutes = (value: string): number | null => {
+  const match = GTFS_TIME.exec(value);
+  if (!match) return null;
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const totalMinutes = hours * MINUTES_PER_HOUR + minutes;
+
+  return Number.isSafeInteger(totalMinutes) ? totalMinutes : null;
 };
 
 export const journeyDurationMinutes = (
@@ -17,7 +24,7 @@ export const journeyDurationMinutes = (
   const departure = timeToMinutes(departureTime);
   const arrival = timeToMinutes(arrivalTime);
 
-  if (!Number.isFinite(departure) || !Number.isFinite(arrival)) return null;
+  if (departure === null || arrival === null) return null;
 
   const difference = arrival - departure;
   return difference < 0 ? null : difference;
