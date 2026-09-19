@@ -1,16 +1,14 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-const expectNoHorizontalOverflow = async (page: Parameters<typeof test>[0]["page"]) => {
+const expectNoHorizontalOverflow = async (page: Page) => {
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   );
   expect(overflow).toBe(false);
 };
 
-const expectNoSeriousAccessibilityViolations = async (
-  page: Parameters<typeof test>[0]["page"],
-) => {
+const expectNoSeriousAccessibilityViolations = async (page: Page) => {
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();
