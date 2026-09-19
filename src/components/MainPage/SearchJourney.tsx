@@ -194,6 +194,9 @@ const SearchJourney: React.FC = () => {
               onChange={(value: Date | null) => setDate(value)}
               dateFormat="dd MMM yyyy"
               includeDates={availableDates}
+              openToDate={availableDates[0]}
+              minDate={availableDates[0]}
+              maxDate={availableDates.at(-1)}
               disabled={!from || !to || invalidRoute || availableDatesQuery.isLoading}
               placeholderText={
                 !from || !to
