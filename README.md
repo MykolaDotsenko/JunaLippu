@@ -89,7 +89,7 @@ The bundled railway CSV dataset contains historical sample data.
 
 Each `Trip` now has an explicit `service_date`; application logic no longer derives dates from the format of `trip_id`.
 
-The search UI queries the database for available service dates after a route is selected, only enables dates that contain a direct demo journey, opens the calendar on the first such date, and states the covered range in the form.
+The search UI queries the database for available service dates after a route is selected, offers only dates that contain a direct demo journey, and states the covered range in the form.
 
 ## Architecture
 
@@ -132,8 +132,8 @@ cp .env.example .env
 Configure Google OAuth credentials in `.env`.
 
 Production configuration fails fast when required authentication secrets are
-missing. In development the Google provider is simply not registered when its
-credentials are absent, and the reason is logged.
+missing. In development the Google provider is not registered when its
+credentials are absent; sign-in controls are disabled and the reason is logged.
 
 ### Create the database
 
@@ -148,9 +148,19 @@ when `schema.prisma` and the migrations disagree.
 #### Existing databases
 
 A database created before migrations existed — with `prisma db push`, including
-one imported from the CSV dataset — already has the tables, so
+one populated from the CSV dataset — already has tables, so
 `prisma migrate deploy` stops with `P3005: The database schema is not empty`.
-Record the baseline as applied once, then migrate normally afterwards:
+Before marking the baseline as applied, verify that the existing database
+matches `prisma/schema.prisma`:
+
+```bash
+pnpm exec prisma migrate diff \
+  --from-schema-datasource prisma/schema.prisma \
+  --to-schema-datamodel prisma/schema.prisma \
+  --exit-code
+```
+
+Only when that command reports no drift should the baseline be recorded:
 
 ```bash
 pnpm exec prisma migrate resolve --applied 0_init
