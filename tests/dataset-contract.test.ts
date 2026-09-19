@@ -44,6 +44,11 @@ const stopCalls: StopCall[] = readRows("7_Stop_time.csv").map(
   }),
 );
 
+
+const trainIds = new Set(readRows("1_Train.csv").map(([trainId]) => trainId ?? ""));
+const carIds = new Set(readRows("2_Car.csv").map(([carId]) => carId ?? ""));
+const compositionRows = readRows("4_Train_composition.csv");
+
 const callsByTrip = new Map<string, StopCall[]>();
 for (const call of stopCalls) {
   const calls = callsByTrip.get(call.tripId) ?? [];
@@ -53,6 +58,26 @@ for (const call of stopCalls) {
 for (const calls of callsByTrip.values()) {
   calls.sort((left, right) => left.sequence - right.sequence);
 }
+
+void test("legacy CSV referential anomalies stay explicit and bounded", () => {
+  const orphanCompositions = compositionRows.filter(
+    ([trainId, carId]) => !trainIds.has(trainId ?? "") || !carIds.has(carId ?? ""),
+  );
+  assert.equal(orphanCompositions.length, 2);
+  assert.deepEqual(
+    [...new Set(orphanCompositions.map(([trainId]) => trainId))],
+    ["110002"],
+  );
+
+  const orphanStopTimes = stopCalls.filter(
+    (call) => !stopNames.has(call.stopId) || !tripDates.has(call.tripId),
+  );
+  assert.equal(orphanStopTimes.length, 6);
+  assert.deepEqual(
+    [...new Set(orphanStopTimes.map((call) => call.stopId))],
+    ["VKA_0"],
+  );
+});
 
 void test("every shipped timetable value is valid GTFS time", () => {
   for (const call of stopCalls) {
