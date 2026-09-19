@@ -86,7 +86,7 @@ const Journey: React.FC = () => {
       </Head>
       <div className="min-h-screen bg-slate-50 text-slate-950">
         <Header />
-        <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+        <main id="main-content" className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
           <BookingProgress current={3} />
 
           <div className="mb-8">
