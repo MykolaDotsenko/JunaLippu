@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -7,11 +7,18 @@ import BookingProgress from "~/components/BookingProgress";
 import LoadingPanel from "~/components/LoadingPanel";
 import MissingDetails from "~/components/MissingDetails";
 import PageLayout from "~/components/PageLayout";
+import { useGoogleAuthStatus } from "~/hooks/useGoogleAuthStatus";
 import { api } from "~/utils/api";
 
 const ReviewPage = () => {
   const router = useRouter();
+  const [routerReady, setRouterReady] = useState(false);
   const { data: session, status } = useSession();
+  const googleAuthStatus = useGoogleAuthStatus();
+
+  useEffect(() => {
+    if (router.isReady) setRouterReady(true);
+  }, [router.isReady]);
 
   const tripId =
     typeof router.query.tripId === "string" ? router.query.tripId : "";
@@ -61,14 +68,16 @@ const ReviewPage = () => {
 
   const handleReserve = () => {
     if (!session) {
-      void signIn("google", { callbackUrl: router.asPath });
+      if (googleAuthStatus === "available") {
+        void signIn("google", { callbackUrl: router.asPath });
+      }
       return;
     }
     if (!review.data) return;
     reserve.mutate(input);
   };
 
-  if (!router.isReady) {
+  if (!routerReady) {
     return (
       <PageLayout title="Review booking · JunaLippu" width="md">
         <BookingProgress current={4} />
@@ -185,11 +194,19 @@ const ReviewPage = () => {
               <button
                 type="button"
                 onClick={handleReserve}
-                disabled={status === "loading" || reserve.isPending}
+                disabled={
+                  status === "loading" ||
+                  reserve.isPending ||
+                  (!session && googleAuthStatus !== "available")
+                }
                 className="mt-6 min-h-12 w-full rounded-xl bg-blue-600 px-6 font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
               >
                 {!session
-                  ? "Continue with Google"
+                  ? googleAuthStatus === "unavailable"
+                    ? "Google sign-in unavailable"
+                    : googleAuthStatus === "loading"
+                      ? "Checking sign-in…"
+                      : "Continue with Google"
                   : reserve.isPending
                     ? "Creating reservation…"
                     : "Reserve seat"}
