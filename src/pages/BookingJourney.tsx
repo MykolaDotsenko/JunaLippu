@@ -24,7 +24,7 @@ const BookingJourney: React.FC = () => {
       </Head>
       <div className="min-h-screen bg-slate-50 text-slate-950">
         <Header />
-        <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
+        <main id="main-content" className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
           <BookingProgress current={2} />
 
           <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
