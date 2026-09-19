@@ -1,22 +1,29 @@
 import React from "react";
-import Header from "../components/Header";
-import Footer from "../components/Footer";
-import SearchJourney from "../components/MainPage/SearchJourney";
-import SummerTravels from "../components/MainPage/SummerTravels";
-import PopularRoutes from "../components/MainPage/PopularRoutes";
+import Head from "next/head";
 
-const MainPage: React.FC = () => {
-  return (
-    <div>
+import Footer from "~/components/Footer";
+import Header from "~/components/Header";
+import PopularRoutes from "~/components/MainPage/PopularRoutes";
+import SearchJourney from "~/components/MainPage/SearchJourney";
+
+const MainPage: React.FC = () => (
+  <>
+    <Head>
+      <title>JunaLippu · Train booking demo</title>
+      <meta
+        name="description"
+        content="Search demo Finnish train journeys, choose a seat and create an authenticated reservation."
+      />
+    </Head>
+    <div className="min-h-screen bg-slate-50 text-slate-950">
       <Header />
-      <main className="p-4">
+      <main id="main-content" className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
         <SearchJourney />
-        <SummerTravels />
         <PopularRoutes />
       </main>
       <Footer />
     </div>
-  );
-};
+  </>
+);
 
 export default MainPage;

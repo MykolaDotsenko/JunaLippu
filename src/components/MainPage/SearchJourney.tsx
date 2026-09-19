@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -14,136 +14,210 @@ const toLocalDateString = (date: Date) => {
 
 const SearchJourney: React.FC = () => {
   const router = useRouter();
-  const { data: stations = [], isLoading } = api.search.getStationName.useQuery();
+  const stationsQuery = api.search.getStationName.useQuery(undefined, {
+    retry: 1,
+  });
+  const stations = stationsQuery.data ?? [];
 
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [returnDate, setReturnDate] = useState<Date | null>(null);
-  const [passengers, setPassengers] = useState(1);
+  const [from, setFrom] = useState(
+    typeof router.query.from === "string" ? router.query.from : "",
+  );
+  const [to, setTo] = useState(
+    typeof router.query.to === "string" ? router.query.to : "",
+  );
+  const [date, setDate] = useState<Date | null>(null);
 
-  const handleSearchJourney = () => {
-    if (!from || !to || from === to || !startDate) return;
+  useEffect(() => {
+    if (typeof router.query.from === "string") setFrom(router.query.from);
+    if (typeof router.query.to === "string") setTo(router.query.to);
+  }, [router.query.from, router.query.to]);
 
-    const departure = stations.find((station) => station.stop_id === from);
-    const arrival = stations.find((station) => station.stop_id === to);
+  const availableDatesQuery = api.search.getAvailableDates.useQuery(
+    {
+      dep_stop_id: from,
+      arriv_stop_id: to,
+    },
+    {
+      enabled: Boolean(from && to && from !== to),
+      retry: 1,
+    },
+  );
+
+  const availableDates = useMemo(
+    () =>
+      (availableDatesQuery.data ?? []).map((value) => {
+        const [year, month, day] = value.split("-").map(Number);
+        return new Date(year ?? 2024, (month ?? 1) - 1, day ?? 1);
+      }),
+    [availableDatesQuery.data],
+  );
+
+  const stationNameById = useMemo(
+    () => new Map(stations.map((station) => [station.stop_id, station.stop_name])),
+    [stations],
+  );
+
+  const invalidRoute = Boolean(from && to && from === to);
+  const canSearch = Boolean(from && to && date && !invalidRoute);
+
+  const swapStations = () => {
+    setFrom(to);
+    setTo(from);
+    setDate(null);
+  };
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!canSearch || !date) return;
 
     void router.push({
       pathname: "/BookingJourney",
       query: {
         depStopId: from,
         arrivStopId: to,
-        departureCity: departure?.stop_name ?? from,
-        arrivalCity: arrival?.stop_name ?? to,
-        startDate: toLocalDateString(startDate),
-        returnDate: returnDate ? toLocalDateString(returnDate) : "",
-        passengers: passengers.toString(),
+        departureCity: stationNameById.get(from) ?? from,
+        arrivalCity: stationNameById.get(to) ?? to,
+        startDate: toLocalDateString(date),
       },
     });
   };
 
   return (
-    <section
-      className="relative h-[597px] w-full bg-cover bg-center"
-      style={{ backgroundImage: "url('/images/fiska.jpg')" }}
-    >
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 bg-opacity-50">
-        <h2 className="mb-6 text-2xl font-bold text-white">Where do you want to go?</h2>
+    <section id="search" className="relative overflow-hidden rounded-3xl bg-slate-950 shadow-xl">
+      <div
+        className="absolute inset-0 bg-cover bg-center opacity-50"
+        style={{ backgroundImage: "url('/images/fiska.jpg')" }}
+        aria-hidden="true"
+      />
+      <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-slate-900/50" aria-hidden="true" />
 
-        <form className="relative w-11/12 max-w-4xl rounded-lg bg-white bg-opacity-20 p-8 shadow-lg">
-          <div className="mb-6 flex space-x-4">
-            <div className="flex w-full flex-col">
-              <label htmlFor="from" className="mb-2 text-lg font-semibold">From:</label>
-              <select
-                id="from"
-                value={from}
-                onChange={(event) => setFrom(event.target.value)}
-                disabled={isLoading}
-                className="rounded-lg border border-gray-300 p-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select station</option>
-                {stations.map((station) => (
-                  <option key={station.stop_id} value={station.stop_id}>
-                    {station.stop_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex w-full flex-col">
-              <label htmlFor="to" className="mb-2 text-lg font-semibold">To:</label>
-              <select
-                id="to"
-                value={to}
-                onChange={(event) => setTo(event.target.value)}
-                disabled={isLoading}
-                className="rounded-lg border border-gray-300 p-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select station</option>
-                {stations.map((station) => (
-                  <option key={station.stop_id} value={station.stop_id}>
-                    {station.stop_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="mb-6 flex space-x-4">
-            <div className="flex w-full flex-col">
-              <label className="mb-2 text-lg font-semibold">Date:</label>
-              <DatePicker
-                selected={startDate}
-                onChange={(date: Date | null) => setStartDate(date)}
-                dateFormat="dd/MM/yyyy"
-                placeholderText="Select service date"
-                className="rounded-lg border border-gray-300 p-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="flex w-full flex-col">
-              <label className="mb-2 text-lg font-semibold">Return Date:</label>
-              <DatePicker
-                selected={returnDate}
-                onChange={(date: Date | null) => setReturnDate(date)}
-                dateFormat="dd/MM/yyyy"
-                placeholderText="Optional"
-                className="rounded-lg border border-gray-300 p-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="flex w-full flex-col">
-              <label htmlFor="passengers" className="mb-2 text-lg font-semibold">Passengers:</label>
-              <select
-                id="passengers"
-                value={passengers}
-                onChange={(event) => setPassengers(Number(event.target.value))}
-                className="rounded-lg border border-gray-300 p-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {[1, 2, 3, 4].map((count) => (
-                  <option key={count} value={count}>{count}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <p className="mb-3 text-sm text-white/90">
-            Demo timetable data in this repository contains 2024 service dates.
+      <div className="relative grid gap-8 px-5 py-10 sm:px-8 sm:py-14 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:px-12 lg:py-16">
+        <div className="max-w-xl text-white">
+          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-blue-300">
+            Finland by rail
           </p>
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+            Find a train in seconds.
+          </h1>
+          <p className="mt-4 max-w-lg text-base leading-7 text-slate-200 sm:text-lg">
+            A focused booking demo: choose a route and service date, select a
+            train and seat, then reserve securely with Google sign-in.
+          </p>
+        </div>
 
-          {from && to && from === to && (
-            <p className="mb-3 text-sm font-semibold text-red-700">
+        <form
+          onSubmit={handleSubmit}
+          className="rounded-2xl bg-white p-5 shadow-2xl sm:p-6"
+        >
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-slate-950">Search journey</h2>
+              <p className="mt-1 text-sm text-slate-500">One way · 1 passenger</p>
+            </div>
+            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+              Demo data · 2024
+            </span>
+          </div>
+
+          {stationsQuery.error && (
+            <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              We could not load stations.
+              <button
+                type="button"
+                onClick={() => void stationsQuery.refetch()}
+                className="ml-2 font-semibold underline underline-offset-2"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
+            <label className="block">
+              <span className="mb-2 block text-sm font-semibold text-slate-700">From</span>
+              <select
+                value={from}
+                onChange={(event) => { setFrom(event.target.value); setDate(null); }}
+                disabled={stationsQuery.isLoading}
+                className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
+              >
+                <option value="">Select station</option>
+                {stations.map((station) => (
+                  <option key={station.stop_id} value={station.stop_id}>
+                    {station.stop_name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <button
+              type="button"
+              onClick={swapStations}
+              disabled={!from && !to}
+              aria-label="Swap departure and arrival stations"
+              className="min-h-12 min-w-12 rounded-xl border border-slate-300 bg-white px-3 text-lg text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-40"
+            >
+              ⇄
+            </button>
+
+            <label className="block">
+              <span className="mb-2 block text-sm font-semibold text-slate-700">To</span>
+              <select
+                value={to}
+                onChange={(event) => { setTo(event.target.value); setDate(null); }}
+                disabled={stationsQuery.isLoading}
+                className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
+              >
+                <option value="">Select station</option>
+                {stations.map((station) => (
+                  <option key={station.stop_id} value={station.stop_id}>
+                    {station.stop_name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <label className="mt-4 block">
+            <span className="mb-2 block text-sm font-semibold text-slate-700">Service date</span>
+            <DatePicker
+              selected={date}
+              onChange={(value: Date | null) => setDate(value)}
+              dateFormat="dd MMM yyyy"
+              includeDates={availableDates}
+              disabled={!from || !to || invalidRoute || availableDatesQuery.isLoading}
+              placeholderText={
+                !from || !to
+                  ? "Choose route first"
+                  : availableDatesQuery.isLoading
+                    ? "Loading dates…"
+                    : availableDates.length === 0
+                      ? "No dates available"
+                      : "Choose service date"
+              }
+              wrapperClassName="w-full"
+              className="min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+            />
+          </label>
+
+          {from && to && !invalidRoute && availableDatesQuery.isSuccess && availableDates.length === 0 && (
+            <p role="status" className="mt-3 text-sm font-medium text-amber-700">
+              No direct demo journeys are available for this route.
+            </p>
+          )}
+
+          {invalidRoute && (
+            <p role="alert" className="mt-3 text-sm font-medium text-red-700">
               Departure and arrival stations must be different.
             </p>
           )}
 
           <button
-            type="button"
-            onClick={handleSearchJourney}
-            disabled={!from || !to || from === to || !startDate}
-            className="w-full rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            type="submit"
+            disabled={!canSearch}
+            className="mt-5 min-h-12 w-full rounded-xl bg-blue-600 px-5 font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            Search journey
+            Search trains
           </button>
         </form>
       </div>

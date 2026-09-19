@@ -1,6 +1,8 @@
 # JunaLippu
 
-JunaLippu is a full-stack railway booking demo for searching Finnish train journeys, selecting an available seat, authenticating with Google, and creating a reservation.
+JunaLippu is a full-stack railway-booking portfolio app for searching Finnish train journeys, choosing an available seat, authenticating with Google, and creating a reservation.
+
+The current product scope is intentionally focused: **one-way journeys for one passenger**. The goal is a short, reliable booking flow rather than exposing incomplete features.
 
 ## Stack
 
@@ -11,11 +13,53 @@ JunaLippu is a full-stack railway booking demo for searching Finnish train journ
 - SQLite
 - NextAuth with Google OAuth
 - pnpm
+- GitHub Actions CI
+
+## Product flow
+
+```text
+Search
+  ↓
+Choose train
+  ↓
+Choose class + seat
+  ↓
+Review booking
+  ↓
+Google sign-in (if needed)
+  ↓
+Reservation confirmed
+```
+
+The UI is mobile-first and uses explicit loading, empty and error states throughout the booking flow.
+
+## Reliability model
+
+The browser never acts as the source of truth for booking price or timing.
+
+The server:
+
+- validates the trip and route segment;
+- validates that departure occurs before arrival;
+- validates that the selected seat belongs to the selected train and travel class;
+- calculates the journey duration;
+- calculates the price;
+- creates the reservation for the authenticated user;
+- prevents the same physical seat from being booked twice on the same trip;
+- reloads the final confirmation from the authenticated reservation record.
+
+A database constraint on `(trip_id, seat_id)` provides the final duplicate-booking guard.
+
+## Demo timetable
+
+The bundled railway CSV dataset contains historical **2024 service data**.
+
+The search UI queries the database for available service dates after a route is selected and only enables dates that actually contain a direct demo journey.
 
 ## Architecture
 
 ```text
-Browser UI
+Next.js UI
    |
    v
 tRPC client
@@ -31,18 +75,6 @@ SQLite railway database
 ```
 
 The railway data model covers trains, cars, seats, routes, trips, stops, stop times, service calendars, users and reservations.
-
-## Booking flow
-
-1. Load stations from the database.
-2. Select departure/arrival stations and date.
-3. Search compatible trips.
-4. Select travel class.
-5. Load seats that are not already reserved for the selected trip.
-6. Authenticate with Google.
-7. Create the reservation.
-
-A database constraint on `(trip_id, seat_id)` prevents the same physical seat from being reserved twice on the same trip.
 
 ## Local setup
 
@@ -93,30 +125,35 @@ GOOGLE_CLIENT_SECRET
 
 ## Payment scope
 
-This is a portfolio/demo application. It creates a real booking record in the application database, but it does **not** process real money or collect card data.
+JunaLippu does **not** collect card details or process real money.
 
-## Data integrity
+The review screen clearly identifies this as a portfolio demo, and the final action creates only a reservation record in the application database.
 
-The current implementation validates:
+## CI
 
-- departure and arrival are different points on the same trip;
-- departure occurs before arrival;
-- the requested seat exists;
-- reservation creation requires an authenticated user;
-- a seat cannot be booked twice for the same trip.
+Pull requests run:
+
+```text
+pnpm install
+prisma validate
+prisma generate
+pnpm lint
+pnpm build
+```
 
 ## Historical context
 
-The project started as a team learning project in 2024. The production-readiness refactor keeps the original railway domain and dataset while replacing hardcoded booking paths with the actual tRPC/Prisma backend.
+The project started as a team learning project in 2024. The later refactor preserves the original railway domain and dataset while replacing hardcoded booking paths, fake authentication/payment UI and fixed-position layouts with a real tRPC/Prisma booking flow and responsive interface.
 
 ## Remaining production work
 
-Before using a system like this for real ticket sales, it would still need:
+A real ticketing product would still require:
 
-- segment-aware seat inventory for overlapping partial journeys;
+- segment-aware seat inventory for partially overlapping journeys;
+- reservation holds and expiry semantics;
 - transactional payment integration;
-- stronger booking expiry/hold semantics;
-- automated unit/integration/E2E tests;
+- automated unit, integration and end-to-end tests;
+- accessibility testing with axe and assistive technologies;
 - observability and audit logging;
 - production database migrations and deployment infrastructure.
 
