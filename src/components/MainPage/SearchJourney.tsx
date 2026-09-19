@@ -17,7 +17,7 @@ const SearchJourney: React.FC = () => {
   const stationsQuery = api.search.getStationName.useQuery(undefined, {
     retry: 1,
   });
-  const stations = stationsQuery.data ?? [];
+  const stations = useMemo(() => stationsQuery.data ?? [], [stationsQuery.data]);
 
   const [from, setFrom] = useState(
     typeof router.query.from === "string" ? router.query.from : "",
@@ -36,7 +36,7 @@ const SearchJourney: React.FC = () => {
       setTo(nextTo);
       setDate(null);
     }
-  }, [router.query.from, router.query.to]);
+  }, [router.query.from, router.query.to, from, to]);
 
   const availableDatesQuery = api.search.getAvailableDates.useQuery(
     {
