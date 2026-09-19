@@ -34,14 +34,16 @@ pnpm build
 Browser tests need a built app and a seeded database:
 
 ```bash
-node tests/e2e-seed.mjs
+pnpm e2e:seed
 pnpm exec playwright install chromium
 pnpm test:e2e
 ```
 
-The integration and browser suites take over the database named by
-`DATABASE_URL`. Point it at a scratch file rather than a database whose
-contents you care about.
+The integration and browser suites delete every row in the database named by
+`DATABASE_URL`, so they refuse to run unless `NODE_ENV=test`. The `pnpm`
+scripts above set it; invoking the test files directly does not. Point
+`DATABASE_URL` at a scratch file rather than a database whose contents you care
+about.
 
 ## Database changes
 

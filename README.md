@@ -196,7 +196,7 @@ These suites take over the database named by `DATABASE_URL`.
 Mobile browser smoke/E2E:
 
 ```bash
-node tests/e2e-seed.mjs
+pnpm e2e:seed
 pnpm exec playwright install chromium
 pnpm test:e2e
 ```

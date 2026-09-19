@@ -5,7 +5,19 @@ import { Prisma, PrismaClient } from "@prisma/client";
 
 const db = new PrismaClient();
 
+const assertTestDatabase = () => {
+  if (process.env.NODE_ENV !== "test") {
+    throw new Error(
+      "Refusing to wipe the database: NODE_ENV is not 'test'. These helpers " +
+        "delete every row in the database named by DATABASE_URL, which in a " +
+        "normal setup is your development data. Run the pnpm test scripts, " +
+        "which set NODE_ENV for you.",
+    );
+  }
+};
+
 const reset = async () => {
+  assertTestDatabase();
   await db.reservationSegment.deleteMany();
   await db.reservation.deleteMany();
   await db.session.deleteMany();

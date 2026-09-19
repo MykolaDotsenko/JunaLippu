@@ -6,9 +6,9 @@
   "scripts": {
     "build": "next build",
     "db:migrate": "prisma migrate deploy",
-    "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "dev": "next dev",
+    "e2e:seed": "NODE_ENV=test node tests/e2e-seed.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",

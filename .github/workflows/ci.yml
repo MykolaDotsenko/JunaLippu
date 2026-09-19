@@ -71,7 +71,7 @@ jobs:
         run: pnpm build
 
       - name: Seed browser test database
-        run: node tests/e2e-seed.mjs
+        run: pnpm e2e:seed
 
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
