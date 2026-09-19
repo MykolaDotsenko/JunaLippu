@@ -68,6 +68,12 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
+      - name: Show formatting diff
+        if: failure()
+        run: |
+          pnpm format
+          git diff --no-ext-diff -- .
+
       - name: Lint
         run: pnpm lint
 
