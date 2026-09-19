@@ -41,8 +41,8 @@ class ErrorBoundary extends React.Component<
             Something went wrong.
           </h1>
           <p className="mt-3 text-slate-600">
-            The page could not be displayed. If you just reserved a seat,
-            check My bookings before trying again.
+            The page could not be displayed. If you just reserved a seat, check
+            My bookings before trying again.
           </p>
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a
