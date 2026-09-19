@@ -80,9 +80,11 @@ const SearchJourney = () => {
       ? "Choose route first"
       : availableDatesQuery.isLoading
         ? "Loading dates…"
-        : availableDates.length === 0
-          ? "No dates available"
-          : "Choose service date";
+        : availableDatesQuery.error
+          ? "Could not load dates"
+          : availableDates.length === 0
+            ? "No dates available"
+            : "Choose service date";
 
   const canSearch = Boolean(from && to && selectedDate && !invalidRoute);
 
@@ -244,6 +246,22 @@ const SearchJourney = () => {
             <p role="status" className="mt-2 text-sm text-slate-500">
               Demo timetable covers {demoDateRange}.
             </p>
+          )}
+
+          {availableDatesQuery.error && (
+            <div
+              role="alert"
+              className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+            >
+              We could not load service dates.
+              <button
+                type="button"
+                onClick={() => void availableDatesQuery.refetch()}
+                className="ml-2 font-semibold underline underline-offset-2"
+              >
+                Try again
+              </button>
+            </div>
           )}
 
           {from &&
