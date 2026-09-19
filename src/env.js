@@ -1,18 +1,22 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
+const requiredInProduction = (name) =>
+  process.env.NODE_ENV === "production"
+    ? z.string().min(1, `${name} is required in production`)
+    : z.string().optional();
+
 export const env = createEnv({
   server: {
     DATABASE_URL: z.string().min(1),
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-    NEXTAUTH_SECRET:
-      process.env.NODE_ENV === "production" ? z.string().min(1) : z.string().optional(),
+    NEXTAUTH_SECRET: requiredInProduction("NEXTAUTH_SECRET"),
     NEXTAUTH_URL: z.preprocess(
       (str) => process.env.VERCEL_URL ?? str,
       process.env.VERCEL ? z.string() : z.string().url(),
     ),
-    GOOGLE_CLIENT_ID: z.string().optional(),
-    GOOGLE_CLIENT_SECRET: z.string().optional(),
+    GOOGLE_CLIENT_ID: requiredInProduction("GOOGLE_CLIENT_ID"),
+    GOOGLE_CLIENT_SECRET: requiredInProduction("GOOGLE_CLIENT_SECRET"),
   },
   client: {},
   runtimeEnv: {
