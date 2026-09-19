@@ -202,3 +202,23 @@ test("the search form keeps the query in the URL", async ({ page }) => {
     page.getByRole("button", { name: "Search trains" }),
   ).toBeEnabled();
 });
+
+test("a failed dates request is reported, not shown as no dates", async ({
+  page,
+}) => {
+  await page.route("**/api/trpc/search.getAvailableDates*", (route) =>
+    route.abort("failed"),
+  );
+
+  await page.goto("/");
+  await page.getByLabel("From").selectOption("E2EA");
+  await page.getByLabel("To").selectOption("E2EC");
+
+  await expect(
+    page.getByText("We could not load service dates."),
+  ).toBeVisible();
+  await expect(page.getByText("No dates available")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Search trains" }),
+  ).toBeDisabled();
+});
