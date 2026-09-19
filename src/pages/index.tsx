@@ -2,6 +2,7 @@ import React from "react";
 
 import PageLayout from "~/components/PageLayout";
 import PopularRoutes from "~/components/home/PopularRoutes";
+import RailExperience from "~/components/home/RailExperience";
 import SearchJourney from "~/components/home/SearchJourney";
 
 const HomePage = () => (
@@ -11,6 +12,7 @@ const HomePage = () => (
   >
     <SearchJourney />
     <PopularRoutes />
+    <RailExperience />
   </PageLayout>
 );
 
