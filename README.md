@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/MykolaDotsenko/JunaLippu/actions/workflows/ci.yml/badge.svg)](https://github.com/MykolaDotsenko/JunaLippu/actions/workflows/ci.yml)
 
+**Live demo:** https://junalippu-live-mykola.onrender.com
+
 **A full-stack Finnish rail-booking demo built around segment-aware inventory, race-safe reservations and exact timetable handling.**
 
 Search historical Finnish train journeys, choose a seat, authenticate with Google and create an owner-scoped reservation.
