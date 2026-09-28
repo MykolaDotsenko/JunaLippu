@@ -2,116 +2,35 @@
 
 [![CI](https://github.com/MykolaDotsenko/JunaLippu/actions/workflows/ci.yml/badge.svg)](https://github.com/MykolaDotsenko/JunaLippu/actions/workflows/ci.yml)
 
-**A reliability-focused full-stack Finnish railway booking demo built with Next.js, tRPC, Prisma, NextAuth and Playwright.**
+**A full-stack Finnish rail-booking demo built around segment-aware inventory, race-safe reservations and exact timetable handling.**
 
-Search historical Finnish train journeys, choose an available seat, authenticate
-with Google and create an owner-scoped reservation. The product scope is
-intentionally focused — **one-way journeys for one passenger** — while the
-engineering goes deeper: segment-aware inventory, race-safe booking, exact GTFS
-time handling, reproducible demo data and end-to-end regression coverage.
+Search historical Finnish train journeys, choose a seat, authenticate with Google and create an owner-scoped reservation.
 
 <p align="center">
   <img src="public/screenshots/junalippu-home.jpg" alt="JunaLippu homepage showing the railway search experience, verified demo routes and engineering highlights" width="1100" />
 </p>
 
-> **Portfolio demo:** historical timetable data only. No real payments are processed.
+> Portfolio demo using historical timetable data. No real payments are processed.
 
-## Why this project is interesting
+## What makes the project interesting
 
-- **Segment-aware inventory:** a seat can be reused later on the same train when
-  journey segments do not overlap.
-- **Race-safe booking:** the database unique constraint, not a preflight
-  availability check, is the final protection against double booking.
-- **Real timetable edge cases:** the bundled data contains GTFS-style
-  single-digit hours, seconds, repeated station calls, and times after 24:00.
-- **Reproducible demo:** migrations, timetable seeding, dataset-contract tests,
-  integration tests, production build, and desktop/mobile browser tests are
-  automated.
+### A seat is not simply “free” or “taken”
 
-## Stack
+A physical seat can be reused later on the same train when journey segments do not overlap.
 
-- Next.js 15.5 + React 18 + TypeScript
-- Tailwind CSS
-- tRPC 11 + TanStack Query 5 + Zod
-- Prisma ORM 6 + SQLite
-- NextAuth 4.24.15 + Google OAuth
-- Playwright
-- pnpm
-- GitHub Actions CI
-
-## Product flow
-
-```text
-Search                /
-  ↓
-Choose train          /trains
-  ↓
-Choose class + seat   /seats
-  ↓
-Review booking        /review
-  ↓
-Google sign-in (if needed)
-  ↓
-Reservation confirmed /confirmation
-  ↓
-Past reservations     /bookings
-```
-
-Legacy PascalCase booking URLs permanently redirect to the current routes so
-older shared links still resolve.
-
-The home page also exposes quick-start routes that are checked against the
-bundled timetable by automated dataset-contract tests.
-
-## Reliability model
-
-The browser is never the source of truth for booking-critical data.
-
-The server:
-
-- resolves the selected trip and route segment;
-- validates departure/arrival direction;
-- parses GTFS timetable values as exact seconds, including hours after 24:00;
-- loads the service date, train, seat, and class from the database;
-- calculates the fare from server-owned timetable data;
-- re-checks seat availability on review and reservation;
-- creates reservations only for the authenticated user;
-- reloads confirmations from the authenticated reservation record;
-- scopes reservation history and individual reservation reads to their owner.
-
-Money is persisted as integer cents.
-
-### Segment-aware seat inventory
-
-Seat occupancy is represented by `ReservationSegment` rows.
-
-A database unique constraint on:
+Occupancy is represented by `ReservationSegment` rows, and a database unique constraint on:
 
 ```text
 trip_id + seat_id + stop_sequence
 ```
 
-prevents overlapping reservations, including concurrent requests. The same
-physical seat can still be reused on a later non-overlapping segment.
+protects overlapping reservations.
 
-The availability query improves UX, but the database constraint is the
-correctness boundary. A racing unique violation is translated into a booking
-conflict, and integration tests prove that exactly one of two concurrent
-requests survives.
+The availability query improves UX, but the database is the final correctness boundary. Integration tests run two concurrent booking attempts for the same segment and verify that only one succeeds.
 
-### Repeated station calls
+### Timetable data has awkward edge cases
 
-A trip can visit the same station more than once. Search and booking therefore
-pair the earliest departure that has a later arrival by `stop_sequence`
-instead of assuming one call per station.
-
-## Timetable data
-
-The railway CSV files in `prisma/` are historical demo data. `Trip` stores an
-explicit `service_date`; application logic does not infer dates from IDs.
-
-GTFS time is handled numerically rather than lexicographically. This matters
-because the bundled data contains values such as:
+The bundled GTFS-style data includes:
 
 ```text
 5:04:00
@@ -121,123 +40,74 @@ because the bundled data contains values such as:
 10:47:39
 ```
 
-Validation, sorting, duration, and pricing share the same seconds-based time
-primitive.
+Times are parsed into seconds rather than compared as strings. Search, duration, ordering and pricing share the same time primitive.
+
+Trips can also visit the same station more than once, so journey search pairs a departure with a later arrival by `stop_sequence` instead of assuming one call per station.
+
+### The browser is not trusted with booking-critical data
+
+The server resolves the trip and segment, calculates fare from server-owned timetable data, re-checks availability and scopes reservation reads/writes to the authenticated owner.
+
+Money is stored as integer cents.
+
+## Stack
+
+- Next.js 15.5 + React 18 + TypeScript
+- tRPC 11 + TanStack Query + Zod
+- Prisma ORM 6 + SQLite
+- NextAuth + Google OAuth
+- Tailwind CSS
+- Playwright
+- pnpm
+- GitHub Actions
+
+## Product flow
+
+```text
+Search
+  ↓
+Choose train
+  ↓
+Choose class + seat
+  ↓
+Review booking
+  ↓
+Sign in if needed
+  ↓
+Reservation confirmed
+  ↓
+Past reservations
+```
+
+The scope stays intentionally narrow: **one-way journeys for one passenger**.
 
 ## Architecture
 
 ```text
-Next.js Pages UI
-   |
-   v
+Next.js UI
+   ↓
 tRPC client
-   |
-   v
+   ↓
 Zod-validated procedures
-   |
-   v
-Booking/search domain invariants
-   |
-   v
-Prisma ORM
-   |
-   v
+   ↓
+booking + timetable rules
+   ↓
+Prisma
+   ↓
 SQLite
 ```
 
-The architecture intentionally stays small. Domain rules live beside the tRPC
-procedures and pure timetable logic lives in `src/server/api/lib/journey.ts`.
-There are no repository/facade/service layers that would only proxy Prisma.
+The code deliberately avoids repository/facade layers that would only proxy Prisma. Pure timetable logic lives separately from request handling, while booking invariants stay close to the database operations they protect.
 
-## Quick start
-
-### Requirements
-
-- Node.js 22
-- pnpm 9+
-
-### Install and load the demo
-
-```bash
-pnpm install --frozen-lockfile
-cp .env.example .env
-pnpm setup
-pnpm dev
-```
+## Reproducible demo data
 
 `pnpm setup` runs migrations and loads the bundled timetable through Prisma.
-It does not require a system `sqlite3` executable.
 
-The seed is intentionally conservative:
-
-- an empty railway database is populated;
-- an already-complete demo dataset is left unchanged;
-- a partial or unrelated railway dataset is refused rather than overwritten.
-
-Open http://localhost:3000.
-
-### Authentication
-
-Google OAuth credentials are optional for local exploration. When they are
-missing, the provider is not registered and sign-in controls are disabled.
-
-Production configuration fails fast when authentication secrets are missing.
-
-Expected variables:
-
-```text
-DATABASE_URL
-NEXTAUTH_URL
-NEXTAUTH_SECRET
-GOOGLE_CLIENT_ID
-GOOGLE_CLIENT_SECRET
-```
-
-`NEXT_PUBLIC_SITE_URL` is optional and enables canonical/Open Graph URLs.
-
-## Database workflow
-
-The schema is owned by `prisma/migrations`.
-
-For normal development:
-
-```bash
-pnpm exec prisma migrate dev --name what_changed
-pnpm db:seed
-```
-
-For deployment:
-
-```bash
-pnpm db:migrate
-```
-
-Do not use `prisma db push` as the normal schema workflow.
-
-### Existing pre-migration databases
-
-Before marking the baseline as applied, first verify that the existing database
-matches `prisma/schema.prisma`:
-
-```bash
-pnpm exec prisma migrate diff \
-  --from-schema-datasource prisma/schema.prisma \
-  --to-schema-datamodel prisma/schema.prisma \
-  --exit-code
-```
-
-Only when no drift is reported:
-
-```bash
-pnpm exec prisma migrate resolve --applied 0_init
-pnpm db:migrate
-```
-
-See `prisma/README.txt` for dataset details.
+The seed refuses to overwrite a partial or unrelated railway dataset. An empty database is populated; an already-complete demo database is left intact.
 
 ## Tests
 
-### Fast checks
+Fast checks:
 
 ```bash
 pnpm typecheck
@@ -246,38 +116,28 @@ pnpm lint
 pnpm test
 ```
 
-`pnpm test` includes both pure domain tests and contracts against the actual
-CSV dataset. These contracts ensure, among other things, that every quick-start
-route really has a bookable service date.
-
-### Database and API integration
+Database/API integration:
 
 ```bash
 pnpm test:db
 pnpm test:integration
 ```
 
-These commands **do not use the database from your `.env`**. Each command
-creates a unique temporary SQLite database, migrates it, runs the suite, and
-deletes it afterwards. Destructive test helpers refuse to run without that
-isolation marker.
+These suites create isolated temporary SQLite databases rather than using the database from `.env`.
 
-The suites cover:
+Coverage includes:
 
-- overlapping/non-overlapping seat segments;
+- overlapping and non-overlapping seat segments;
 - concurrent booking of the same seat;
 - reservation ownership;
-- pagination;
-- unauthenticated access;
 - invalid/reversed segments;
-- loop services;
+- repeated-station/loop services;
 - GTFS times after midnight;
 - numeric timetable ordering;
-- partial-leg pricing.
+- partial-leg pricing;
+- unauthenticated and API-error paths.
 
-### Browser E2E
-
-Build the app once, install Chromium if needed, then run:
+Browser verification:
 
 ```bash
 pnpm build
@@ -285,72 +145,34 @@ pnpm exec playwright install chromium
 pnpm test:e2e
 ```
 
-Browser tests use another temporary database and exercise both Desktop Chrome
-and a Pixel 7 viewport. They cover the booking flow, URL restoration, keyboard
-radio navigation, quick-start routes, auth recovery, legacy redirects,
-404/500 recovery, API-error states, and baseline security headers.
+Desktop and mobile flows cover booking, URL restoration, quick-start routes, auth recovery, legacy redirects and error states.
 
-### One-command non-browser validation
+One-command non-browser gate:
 
 ```bash
 pnpm check
 ```
 
-## CI and security
+## Run locally
 
-Pull requests and pushes to `main` verify:
+Requirements: Node.js 22 and pnpm 9+.
 
-```text
-frozen dependency install
-Prisma validate/generate
-migration deploy + schema drift check
-real demo-data seed
-TypeScript
-Prettier
-ESLint
-unit + dataset-contract tests
-database invariant tests
-booking/search integration tests
-production build
-desktop + mobile Chromium E2E
+```bash
+pnpm install --frozen-lockfile
+cp .env.example .env
+pnpm setup
+pnpm dev
 ```
 
-The workflow uses least-privilege `GITHUB_TOKEN` permissions, immutable action
-SHAs, and cancels stale runs for the same ref.
+Open `http://localhost:3000`.
 
-Application responses set a baseline CSP plus anti-framing, MIME-sniffing,
-referrer, permissions, and production HSTS headers.
-
-## Accessibility
-
-The UI includes:
-
-- a skip link;
-- semantic headings and landmarks;
-- explicit loading/error/empty states;
-- radio-group semantics with roving tabindex and arrow-key navigation;
-- visible focus treatment;
-- 44px+ interactive targets;
-- reduced-motion handling;
-- semantic ordered booking progress.
-
-A dedicated automated WCAG/axe audit would still be appropriate before treating
-the application as a commercial service.
+Google OAuth is optional for local exploration. When credentials are absent, sign-in controls are disabled rather than exposing a broken provider.
 
 ## Product boundaries
 
-JunaLippu does **not** collect card details or process real money. The review
-screen explicitly identifies the application as a portfolio demo.
+JunaLippu does **not** process real payments and is not presented as a production ticketing service.
 
-A commercial ticketing product would additionally need:
-
-- temporary reservation holds and expiry;
-- cancellation/refund workflows;
-- transactional payment integration;
-- production-grade database infrastructure;
-- centralized logs, tracing, alerting, and audit trails;
-- broader automated accessibility and cross-browser coverage;
-- multi-passenger, return-journey, and localization support.
+A commercial version would still need reservation holds/expiry, refunds, payment integration, production database infrastructure, stronger observability, broader accessibility/cross-browser coverage, multi-passenger journeys and localization.
 
 ## Contributing
 
@@ -358,9 +180,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-[MIT](LICENSE).
+[MIT](LICENSE)
 
 ## Disclaimer
 
-JunaLippu is an educational portfolio project and is not affiliated with VR
-Group or any railway operator.
+JunaLippu is an educational portfolio project and is not affiliated with VR Group or any railway operator.
