@@ -18,8 +18,8 @@ export const env = createEnv({
       (str) => process.env.VERCEL_URL ?? str,
       process.env.VERCEL ? z.string() : z.string().url(),
     ),
-    GOOGLE_CLIENT_ID: requiredInProduction("GOOGLE_CLIENT_ID"),
-    GOOGLE_CLIENT_SECRET: requiredInProduction("GOOGLE_CLIENT_SECRET"),
+    GOOGLE_CLIENT_ID: z.string().optional(),
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
   },
   client: {
     NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
